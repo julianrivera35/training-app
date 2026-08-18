@@ -203,7 +203,7 @@ class ExcelParser {
   static String _s2(Data? d) {
     if (d?.value == null) return '';
     final v = d!.value!;
-    if (v is TextCellValue) return v.value.trim();
+    if (v is TextCellValue) return (v.value.text ?? '').trim();
     if (v is IntCellValue) return v.value.toString();
     if (v is DoubleCellValue) {
       final dv = v.value;
@@ -223,7 +223,7 @@ class ExcelParser {
     final v = d!.value!;
     if (v is IntCellValue) return v.value.toDouble();
     if (v is DoubleCellValue) return v.value;
-    if (v is TextCellValue) return double.tryParse(v.value.replaceAll(',', '.'));
+    if (v is TextCellValue) return double.tryParse((v.value.text ?? '').replaceAll(',', '.'));
     return null;
   }
 }
