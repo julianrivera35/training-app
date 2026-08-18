@@ -77,7 +77,7 @@ class NutritionScreen extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           ...plan.suplementos.asMap().entries.map((e) => _supCard(e.value)),
-          const SizedBox(height: 32),
+          const SizedBox(height: 100),
         ],
       ),
     );

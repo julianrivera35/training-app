@@ -12,46 +12,51 @@ class TodayScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final p = context.watch<AppProvider>();
     final today = p.todayTraining;
-    final fmt = DateFormat('EEEE d MMMM yyyy', 'es');
-    final now = DateTime.now();
+    final fmt = DateFormat('EEEE d MMMM', 'es');
+    final top = MediaQuery.of(context).padding.top; // respeta Dynamic Island
 
     return Scaffold(
       body: CustomScrollView(
         slivers: [
           SliverAppBar(
-            expandedHeight: 140,
+            expandedHeight: 150,
+            collapsedHeight: 56,
             pinned: true,
             backgroundColor: AppTheme.navy,
             flexibleSpace: FlexibleSpaceBar(
-              title: Text(
-                p.todayDayName,
-                style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w800),
-              ),
+              titlePadding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
+              title: Row(children: [
+                Text(p.todayDayName,
+                  style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w800)),
+                const SizedBox(width: 8),
+                _badge('Sem ${p.currentWeek}', AppTheme.orange),
+              ]),
               background: Container(
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
+                    begin: Alignment.topLeft, end: Alignment.bottomRight,
                     colors: [Color(0xFF1B2F5B), Color(0xFF1565C0)],
                   ),
                 ),
+                // top padding = status bar + Dynamic Island
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 48, 20, 50),
+                  padding: EdgeInsets.fromLTRB(20, top + 12, 20, 52),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.end,
                     children: [
                       Text(
-                        fmt.format(now),
+                        fmt.format(DateTime.now()),
                         style: const TextStyle(color: Colors.white70, fontSize: 12),
                       ),
                       const SizedBox(height: 4),
-                      Row(
-                        children: [
-                          _badge('Sem ${p.currentWeek}', AppTheme.orange),
-                          const SizedBox(width: 8),
-                          _badge(p.currentPhase, Colors.white24),
+                      Row(children: [
+                        _badge(p.currentPhase, Colors.white24),
+                        if (today != null) ...[
+                          const SizedBox(width: 6),
+                          _badge('${today.exercises.length} ejercicios', Colors.white12),
                         ],
-                      ),
+                      ]),
                     ],
                   ),
                 ),
@@ -64,11 +69,9 @@ class TodayScreen extends StatelessWidget {
           else if (today == null)
             SliverFillRemaining(child: _restDay(p.todayDayName))
           else ...[
-            // Progress bar
             SliverToBoxAdapter(
-              child: _progressHeader(today.exercises.length, p.completedCount(today.name)),
+              child: _progressBar(today.exercises.length, p.completedCount(today.name)),
             ),
-            // Exercise list
             SliverList(
               delegate: SliverChildBuilderDelegate(
                 (_, i) {
@@ -83,50 +86,41 @@ class TodayScreen extends StatelessWidget {
                 childCount: today.exercises.length,
               ),
             ),
-            const SliverToBoxAdapter(child: SizedBox(height: 32)),
+            const SliverToBoxAdapter(child: SizedBox(height: 40)),
           ],
         ],
       ),
     );
   }
 
-  Widget _badge(String text, Color color) => Container(
+  static Widget _badge(String text, Color color) => Container(
     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
     decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(8)),
     child: Text(text, style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w700)),
   );
 
-  Widget _progressHeader(int total, int done) {
+  Widget _progressBar(int total, int done) {
     final pct = total == 0 ? 0.0 : done / total;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text('$done / $total ejercicios',
-                style: const TextStyle(fontSize: 13, color: Color(0xFF546E7A), fontWeight: FontWeight.w600)),
-              Text('${(pct * 100).toInt()}%',
-                style: TextStyle(
-                  fontSize: 13,
-                  color: pct == 1 ? AppTheme.green : AppTheme.navy,
-                  fontWeight: FontWeight.w700,
-                )),
-            ],
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 4),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+          Text('$done / $total completados',
+            style: const TextStyle(fontSize: 13, color: Color(0xFF546E7A), fontWeight: FontWeight.w600)),
+          Text('${(pct * 100).toInt()}%',
+            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700,
+              color: pct >= 1 ? AppTheme.green : AppTheme.navy)),
+        ]),
+        const SizedBox(height: 6),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(4),
+          child: LinearProgressIndicator(
+            value: pct, minHeight: 5,
+            backgroundColor: const Color(0xFFE0E0E0),
+            color: pct >= 1 ? AppTheme.green : AppTheme.blue,
           ),
-          const SizedBox(height: 6),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: LinearProgressIndicator(
-              value: pct, minHeight: 5,
-              backgroundColor: const Color(0xFFE0E0E0),
-              color: pct == 1 ? AppTheme.green : AppTheme.blue,
-            ),
-          ),
-        ],
-      ),
+        ),
+      ]),
     );
   }
 
@@ -136,10 +130,12 @@ class TodayScreen extends StatelessWidget {
       child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
         const Icon(Icons.upload_file_outlined, size: 72, color: Color(0xFFCFD8DC)),
         const SizedBox(height: 20),
-        const Text('Sin plan cargado', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: Color(0xFF546E7A))),
+        const Text('Sin plan cargado',
+          style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: Color(0xFF546E7A))),
         const SizedBox(height: 8),
-        const Text('Importa tu PIVOTES_FINAL.xlsx\ndesde Ajustes para ver tu entrenamiento',
-          textAlign: TextAlign.center, style: TextStyle(color: Color(0xFF90A4AE), height: 1.5)),
+        const Text('Importa tu PIVOTES_FINAL.xlsx desde Ajustes',
+          textAlign: TextAlign.center,
+          style: TextStyle(color: Color(0xFF90A4AE), height: 1.5)),
         const SizedBox(height: 24),
         ElevatedButton.icon(
           icon: const Icon(Icons.upload_file),
@@ -154,12 +150,13 @@ class TodayScreen extends StatelessWidget {
     child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
       const Text('😴', style: TextStyle(fontSize: 64)),
       const SizedBox(height: 16),
-      const Text('Día de descanso', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700, color: Color(0xFF546E7A))),
+      const Text('Día de descanso',
+        style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700, color: Color(0xFF546E7A))),
       const SizedBox(height: 8),
-      Text('No hay entrenamiento programado para $day.',
+      Text('No hay sesión programada para $day.',
         style: const TextStyle(color: Color(0xFF90A4AE))),
       const SizedBox(height: 4),
-      const Text('Recupera, estira, hidrata. 🏆',
+      const Text('Recupera, hidrata, estira. 🏆',
         style: TextStyle(color: Color(0xFF90A4AE))),
     ]),
   );

@@ -27,7 +27,7 @@ class _WeekScreenState extends State<WeekScreen> {
           : p.days.isEmpty
               ? const Center(child: Text('No hay días cargados'))
               : ListView(
-                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  padding: const EdgeInsets.only(top: 8, bottom: 100),
                   children: p.days.map((day) => _dayCard(context, p, day)).toList(),
                 ),
     );

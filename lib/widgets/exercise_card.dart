@@ -43,6 +43,7 @@ class _ExerciseCardState extends State<ExerciseCard> {
   Widget build(BuildContext context) {
     final ex = widget.exercise;
     final isDone = ex.hecho;
+    final hasRec = widget.plannedKg != null;
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 200),
@@ -54,230 +55,216 @@ class _ExerciseCardState extends State<ExerciseCard> {
           color: isDone ? const Color(0xFF81C784) : Colors.transparent,
           width: 1.5,
         ),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.07), blurRadius: 8, offset: const Offset(0, 2)),
-        ],
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.07), blurRadius: 8, offset: const Offset(0, 2))],
       ),
-      child: Column(
-        children: [
-          // ── Main row ────────────────────────────────────────────
-          InkWell(
-            borderRadius: BorderRadius.circular(14),
-            onTap: () => setState(() => _expanded = !_expanded),
-            child: Padding(
-              padding: const EdgeInsets.all(14),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Category chip
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: _catColor,
-                      borderRadius: BorderRadius.circular(7),
-                    ),
-                    child: Text(
-                      _shortBloque(ex.bloque),
-                      style: const TextStyle(
-                        color: Colors.white, fontSize: 10,
-                        fontWeight: FontWeight.w800, letterSpacing: 0.3,
-                      ),
+      child: Column(children: [
+        // ── Main tap area ────────────────────────────────────────
+        InkWell(
+          borderRadius: BorderRadius.circular(14),
+          onTap: () => setState(() => _expanded = !_expanded),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
+            child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              // Category chip (vertical)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                decoration: BoxDecoration(color: _catColor, borderRadius: BorderRadius.circular(7)),
+                child: Text(
+                  _shortBloque(ex.bloque),
+                  style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w800, letterSpacing: 0.2),
+                ),
+              ),
+              const SizedBox(width: 10),
+
+              // Center: name + stats
+              Expanded(
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  // Exercise name
+                  Text(
+                    ex.nombre,
+                    style: TextStyle(
+                      fontSize: 15, fontWeight: FontWeight.w700,
+                      color: isDone ? const Color(0xFF388E3C) : AppTheme.navy,
+                      decoration: isDone ? TextDecoration.lineThrough : null,
                     ),
                   ),
-                  const SizedBox(width: 10),
+                  const SizedBox(height: 6),
 
-                  // Exercise info
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
+                  // ─── PESO RECOMENDADO (principal) ─────────────
+                  if (hasRec)
+                    Container(
+                      margin: const EdgeInsets.only(bottom: 6),
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: isDone ? const Color(0xFFDCEDC8) : const Color(0xFFE8EEF7),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: AppTheme.navy.withOpacity(0.2)),
+                      ),
+                      child: Row(mainAxisSize: MainAxisSize.min, children: [
+                        Icon(Icons.fitness_center, size: 13, color: AppTheme.navy.withOpacity(0.7)),
+                        const SizedBox(width: 5),
                         Text(
-                          ex.nombre,
+                          '${widget.plannedKg!.toStringAsFixed(1)} kg',
                           style: TextStyle(
-                            fontSize: 15, fontWeight: FontWeight.w700,
-                            color: isDone ? const Color(0xFF388E3C) : AppTheme.navy,
-                            decoration: isDone ? TextDecoration.lineThrough : null,
+                            fontSize: 16, fontWeight: FontWeight.w900,
+                            color: isDone ? const Color(0xFF2E7D32) : AppTheme.navy,
                           ),
                         ),
-                        const SizedBox(height: 4),
-                        _statsRow(context, ex),
-                      ],
-                    ),
-                  ),
-
-                  const SizedBox(width: 8),
-
-                  // Done button — al marcar, arranca el timer
-                  GestureDetector(
-                    onTap: () {
-                      widget.onToggle?.call();
-                      // Arrancar timer si se está marcando (no desmarcando)
-                      if (!ex.hecho && ex.descanso.isNotEmpty) {
-                        HapticFeedback.mediumImpact();
-                        Future.delayed(const Duration(milliseconds: 300), () {
-                          if (context.mounted) {
-                            RestTimerSheet.show(context, ex.descanso, ex.nombre);
-                          }
-                        });
-                      }
-                    },
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 200),
-                      width: 36, height: 36,
+                        const SizedBox(width: 4),
+                        Text(
+                          'recomendado',
+                          style: TextStyle(fontSize: 10, color: AppTheme.navy.withOpacity(0.55), fontWeight: FontWeight.w600),
+                        ),
+                      ]),
+                    )
+                  else if (ex.peso.isNotEmpty)
+                    // Fallback: peso del Excel
+                    Container(
+                      margin: const EdgeInsets.only(bottom: 6),
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                       decoration: BoxDecoration(
-                        color: isDone ? const Color(0xFF43A047) : const Color(0xFFEEEEEE),
-                        shape: BoxShape.circle,
+                        color: const Color(0xFFF5F5F5),
+                        borderRadius: BorderRadius.circular(8),
                       ),
-                      child: Icon(
-                        isDone ? Icons.check : Icons.circle_outlined,
-                        color: isDone ? Colors.white : Colors.grey,
-                        size: 20,
-                      ),
+                      child: Text(ex.peso,
+                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF546E7A))),
                     ),
+
+                  // Series × Reps + Descanso
+                  Row(children: [
+                    if (ex.series.isNotEmpty && ex.reps.isNotEmpty)
+                      _chip('${ex.series} × ${ex.reps}', AppTheme.navy, Colors.white),
+                    if (ex.descanso.isNotEmpty) ...[
+                      const SizedBox(width: 6),
+                      GestureDetector(
+                        onTap: () => RestTimerSheet.show(context, ex.descanso, ex.nombre),
+                        child: _chip('⏱ ${ex.descanso}', const Color(0xFFFFF3E0), const Color(0xFFE65100), border: const Color(0xFFFFCC02)),
+                      ),
+                    ],
+                  ]),
+                ]),
+              ),
+
+              const SizedBox(width: 8),
+
+              // Done button
+              GestureDetector(
+                onTap: () {
+                  final wasNotDone = !ex.hecho;
+                  widget.onToggle?.call();
+                  if (wasNotDone && ex.descanso.isNotEmpty) {
+                    HapticFeedback.mediumImpact();
+                    Future.delayed(const Duration(milliseconds: 250), () {
+                      if (context.mounted) RestTimerSheet.show(context, ex.descanso, ex.nombre);
+                    });
+                  }
+                },
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  width: 36, height: 36,
+                  decoration: BoxDecoration(
+                    color: isDone ? const Color(0xFF43A047) : const Color(0xFFEEEEEE),
+                    shape: BoxShape.circle,
                   ),
-                ],
+                  child: Icon(
+                    isDone ? Icons.check : Icons.circle_outlined,
+                    color: isDone ? Colors.white : Colors.grey[400], size: 20,
+                  ),
+                ),
               ),
-            ),
+            ]),
           ),
+        ),
 
-          // ── Expanded ────────────────────────────────────────────
-          if (_expanded) _expandedContent(context, ex),
-        ],
-      ),
+        // ── Expanded detail ──────────────────────────────────────
+        if (_expanded) _expanded$(context, ex),
+      ]),
     );
   }
 
-  Widget _statsRow(BuildContext context, Exercise ex) {
-    return Wrap(
-      spacing: 0,
-      runSpacing: 4,
-      crossAxisAlignment: WrapCrossAlignment.center,
-      children: [
-        // Series × Reps — bien destacado
-        if (ex.series.isNotEmpty && ex.reps.isNotEmpty)
-          _statChip('${ex.series} × ${ex.reps}', const Color(0xFF1B2F5B), textColor: Colors.white),
-
-        // Peso plan
-        if (widget.plannedKg != null)
-          _statChip('${widget.plannedKg!.toStringAsFixed(1)} kg', const Color(0xFFE3F2FD), textColor: const Color(0xFF1565C0))
-        else if (ex.peso.isNotEmpty)
-          _statChip(ex.peso, const Color(0xFFE3F2FD), textColor: const Color(0xFF1565C0)),
-
-        // Descanso — con botón de timer
-        if (ex.descanso.isNotEmpty)
-          GestureDetector(
-            onTap: () => RestTimerSheet.show(context, ex.descanso, ex.nombre),
-            child: Container(
-              margin: const EdgeInsets.only(left: 4),
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-              decoration: BoxDecoration(
-                color: const Color(0xFFFFF3E0),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: const Color(0xFFFFCC02).withOpacity(0.6)),
-              ),
-              child: Row(mainAxisSize: MainAxisSize.min, children: [
-                const Icon(Icons.timer_outlined, size: 13, color: Color(0xFFE65100)),
-                const SizedBox(width: 3),
-                Text(ex.descanso,
-                  style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFFE65100))),
-              ]),
-            ),
-          ),
-      ],
-    );
-  }
-
-  Widget _statChip(String text, Color bg, {Color textColor = Colors.white}) => Container(
-    margin: const EdgeInsets.only(right: 4),
-    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-    decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(20)),
-    child: Text(text, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: textColor)),
+  Widget _chip(String text, Color bg, Color fg, {Color? border}) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+    decoration: BoxDecoration(
+      color: bg,
+      borderRadius: BorderRadius.circular(20),
+      border: border != null ? Border.all(color: border.withOpacity(0.5)) : null,
+    ),
+    child: Text(text, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: fg)),
   );
 
-  Widget _expandedContent(BuildContext context, Exercise ex) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Divider(height: 16, color: Color(0xFFEEEEEE)),
+  Widget _expanded$(BuildContext context, Exercise ex) => Container(
+    padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
+    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      const Divider(height: 16, color: Color(0xFFEEEEEE)),
 
-          // Instrucciones
-          if (ex.instruccion.isNotEmpty) ...[
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF5F7FA),
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: const Color(0xFFE0E0E0)),
-              ),
-              child: Text(
-                ex.instruccion,
-                style: const TextStyle(fontSize: 13, color: Color(0xFF546E7A), height: 1.5),
-              ),
-            ),
-            const SizedBox(height: 12),
-          ],
-
-          // Timer manual
-          if (ex.descanso.isNotEmpty) ...[
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton.icon(
-                icon: const Icon(Icons.timer, size: 18),
-                label: Text('Iniciar timer de descanso — ${ex.descanso}'),
-                onPressed: () => RestTimerSheet.show(context, ex.descanso, ex.nombre),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: const Color(0xFFE65100),
-                  side: const BorderSide(color: Color(0xFFE65100)),
-                  padding: const EdgeInsets.symmetric(vertical: 10),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                ),
-              ),
-            ),
-            const SizedBox(height: 10),
-          ],
-
-          // Peso real
-          Row(
-            children: [
-              const Text('Peso real usado:',
-                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
-              const SizedBox(width: 10),
-              SizedBox(
-                width: 90,
-                child: TextField(
-                  controller: _ctrl,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[\d.]'))],
-                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
-                  decoration: InputDecoration(
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                    suffixText: 'kg',
-                    suffixStyle: const TextStyle(fontSize: 12, color: Colors.grey),
-                  ),
-                  onChanged: (v) => widget.onWeightLogged?.call(double.tryParse(v)),
-                ),
-              ),
-              if (widget.plannedKg != null) ...[
-                const SizedBox(width: 10),
-                Text('Plan: ${widget.plannedKg!.toStringAsFixed(1)} kg',
-                  style: const TextStyle(fontSize: 12, color: Color(0xFF78909C))),
-              ],
-            ],
+      // Instrucciones
+      if (ex.instruccion.isNotEmpty) ...[
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF5F7FA),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: const Color(0xFFE0E4ED)),
           ),
+          child: Text(ex.instruccion,
+            style: const TextStyle(fontSize: 13, color: Color(0xFF546E7A), height: 1.55)),
+        ),
+        const SizedBox(height: 12),
+      ],
+
+      // Timer button
+      if (ex.descanso.isNotEmpty) ...[
+        SizedBox(
+          width: double.infinity,
+          child: OutlinedButton.icon(
+            icon: const Icon(Icons.timer_outlined, size: 18),
+            label: Text('Timer de descanso — ${ex.descanso}'),
+            onPressed: () => RestTimerSheet.show(context, ex.descanso, ex.nombre),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: const Color(0xFFE65100),
+              side: const BorderSide(color: Color(0xFFE65100)),
+              padding: const EdgeInsets.symmetric(vertical: 10),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+          ),
+        ),
+        const SizedBox(height: 10),
+      ],
+
+      // Peso real
+      Row(children: [
+        const Text('Peso real usado:', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+        const SizedBox(width: 10),
+        SizedBox(
+          width: 90,
+          child: TextField(
+            controller: _ctrl,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[\d.]'))],
+            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+            decoration: InputDecoration(
+              contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+              suffixText: 'kg',
+              suffixStyle: const TextStyle(fontSize: 12, color: Colors.grey),
+            ),
+            onChanged: (v) => widget.onWeightLogged?.call(double.tryParse(v)),
+          ),
+        ),
+        if (widget.plannedKg != null) ...[
+          const SizedBox(width: 10),
+          Text('← vs ${widget.plannedKg!.toStringAsFixed(1)} kg plan',
+            style: const TextStyle(fontSize: 11, color: Color(0xFF90A4AE))),
         ],
-      ),
-    );
-  }
+      ]),
+    ]),
+  );
 
   String _shortBloque(String b) {
-    // Quitar emojis, tomar primeras 2 palabras
     final clean = b.replaceAll(RegExp(r'[^\w\sÁÉÍÓÚáéíóúÑñ]'), '').trim();
     final words = clean.split(RegExp(r'\s+')).where((w) => w.isNotEmpty).toList();
     if (words.isEmpty) return b.substring(0, b.length.clamp(0, 8)).toUpperCase();
-    return words.take(2).map((w) => w.substring(0, w.length.clamp(0, 6))).join(' ').toUpperCase();
+    return words.take(2).map((w) => w.substring(0, w.length.clamp(0, 6))).join('\n').toUpperCase();
   }
 }

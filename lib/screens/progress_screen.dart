@@ -114,7 +114,7 @@ class _ProgressScreenState extends State<ProgressScreen> with SingleTickerProvid
             onPressed: _save,
           ),
         ),
-        const SizedBox(height: 32),
+        const SizedBox(height: 100),
       ]),
     );
   }
@@ -224,7 +224,7 @@ class _ProgressScreenState extends State<ProgressScreen> with SingleTickerProvid
         ],
         _sectionLabel('REGISTROS (${p.progress.length})'),
         ...p.progress.asMap().entries.map((e) => _historyCard(e.value, e.key, p)),
-        const SizedBox(height: 32),
+        const SizedBox(height: 100),
       ],
     );
   }

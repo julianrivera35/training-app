@@ -127,7 +127,7 @@ class SettingsScreen extends StatelessWidget {
           // ── Info ────────────────────────────────────────────────
           _section('PERFIL'),
           _infoCard(p),
-          const SizedBox(height: 32),
+          const SizedBox(height: 100),
         ],
       ),
     );
