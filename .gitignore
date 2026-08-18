@@ -30,3 +30,6 @@ macos/Pods/
 *.swp
 *.iml
 *.log
+
+# IDE
+.idea/
