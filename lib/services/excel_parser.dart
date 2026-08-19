@@ -1,3 +1,5 @@
+import 'dart:convert';
+import 'package:archive/archive.dart';
 import 'package:excel/excel.dart';
 import '../models/exercise.dart';
 import '../models/weekly_load.dart';
@@ -18,11 +20,64 @@ class ExcelParser {
 
   // ── public entry ──────────────────────────────────────────────
   static ParsedPlan parse(List<int> bytes) {
-    final excel = Excel.decodeBytes(bytes);
+    final excel = Excel.decodeBytes(_sanitize(bytes));
     final days   = _parseSemanal(excel);
     final loads  = _parseCargas(excel);
     final nutri  = _parseNutricion(excel);
     return ParsedPlan(days: days, loads: loads, nutrition: nutri);
+  }
+
+  /// Some tools (e.g. certain Excel exporters) write absolute relationship
+  /// targets like `Target="/xl/worksheets/sheet1.xml"`. The `excel` package
+  /// resolves them as `findFile('xl/' + target)`, producing `xl//xl/...`,
+  /// which returns null and crashes with "Null check operator used on a null
+  /// value". We rewrite those targets to relative paths before decoding.
+  static List<int> _sanitize(List<int> bytes) {
+    try {
+      final input = ZipDecoder().decodeBytes(bytes);
+      var changed = false;
+      final output = Archive();
+      for (final f in input.files) {
+        if (!f.isFile) continue;
+        var data = f.content as List<int>;
+        if (f.name.endsWith('.rels')) {
+          final xml = utf8.decode(data, allowMalformed: true);
+          // /xl/worksheets/sheet1.xml -> worksheets/sheet1.xml, etc.
+          final fixed = xml.replaceAll('Target="/xl/', 'Target="');
+          if (fixed != xml) {
+            data = utf8.encode(fixed);
+            changed = true;
+          }
+        } else if (f.name.startsWith('xl/worksheets/') &&
+            f.name.endsWith('.xml')) {
+          final xml = utf8.decode(data, allowMalformed: true);
+          // Cells declared as inline strings but with no <t> element
+          // (e.g. `<c ... t="inlineStr"></c>` or self-closed) crash the
+          // parser at `findAllElements('t').first`. Drop the type so they
+          // are treated as empty cells.
+          final fixed = xml
+              .replaceAllMapped(
+                RegExp(r'<c\b([^>]*)\st="inlineStr"([^>]*)>\s*</c>'),
+                (m) => '<c${m[1]}${m[2]}></c>',
+              )
+              .replaceAllMapped(
+                RegExp(r'<c\b([^>]*)\st="inlineStr"([^>]*)/>'),
+                (m) => '<c${m[1]}${m[2]}/>',
+              );
+          if (fixed != xml) {
+            data = utf8.encode(fixed);
+            changed = true;
+          }
+        }
+        output.addFile(ArchiveFile(f.name, data.length, data));
+      }
+      if (!changed) return bytes;
+      final out = ZipEncoder().encode(output);
+      return out ?? bytes;
+    } catch (_) {
+      // If anything goes wrong, fall back to the original bytes.
+      return bytes;
+    }
   }
 
   // ── PROGRAMA SEMANAL ─────────────────────────────────────────
