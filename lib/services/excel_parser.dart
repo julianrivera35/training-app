@@ -88,6 +88,7 @@ class ExcelParser {
     final days = <TrainingDay>[];
     TrainingDay? current;
     String currentSection = '';
+    String? pendingActivity; // encabezado 🏊/🧘 esperando su fila de detalle
     bool headerSkipped = false;
 
     for (final row in sheet.rows) {
@@ -112,12 +113,32 @@ class ExcelParser {
           if (current != null) days.add(current);
           current = TrainingDay(name: a, exercises: []);
           currentSection = '';
+          pendingActivity = null;
         } else if (current != null) {
-          // Section header within a day
-          currentSection = a;
+          if (_isActivityHeader(a)) {
+            // Bloque de natación/flexibilidad: el título va ahora; el detalle
+            // (qué hacer) viene en la siguiente fila de ancho completo.
+            pendingActivity = a;
+            currentSection = a;
+          } else if (pendingActivity != null) {
+            // Fila de detalle del bloque de actividad (solo columna A).
+            current.exercises.add(Exercise(
+              bloque: _activityBloque(pendingActivity),
+              nombre: pendingActivity,
+              instruccion: a,
+              descanso: _extractDescanso(a),
+              seccion: currentSection,
+              dia: current.name,
+            ));
+            pendingActivity = null;
+          } else {
+            // Encabezado de sección normal dentro del día.
+            currentSection = a;
+          }
         }
       } else if (b.isNotEmpty && current != null) {
         // Exercise row
+        pendingActivity = null;
         current.exercises.add(Exercise(
           bloque: a,
           nombre: b,
@@ -241,6 +262,36 @@ class ExcelParser {
   }
 
   // ── helpers ───────────────────────────────────────────────────
+  /// Full-width rows that introduce a swimming / flexibility activity block,
+  /// e.g. "🏊 NATACIÓN HIIT — ..." or "🧘 FLEXIBILIDAD ...". The following
+  /// full-width row holds the actual "what to do" detail.
+  static bool _isActivityHeader(String a) {
+    final stripped =
+        a.replaceAll(RegExp(r'^[^A-Za-zÁÉÍÓÚÑáéíóúñ]+'), '').toUpperCase();
+    return a.startsWith('🏊') ||
+        a.startsWith('🧘') ||
+        stripped.startsWith('NATACIÓN') ||
+        stripped.startsWith('NATACION') ||
+        stripped.startsWith('FLEXIBILIDAD');
+  }
+
+  static String _activityBloque(String header) {
+    final up = header.toUpperCase();
+    if (up.contains('NATACIÓN') || up.contains('NATACION')) return 'NATACIÓN';
+    if (up.contains('FLEXIBILIDAD')) return 'FLEXIBILIDAD';
+    return 'MOVILIDAD';
+  }
+
+  /// Best-effort extraction of a rest hint like "1:30 min" from a paragraph
+  /// such as "8 × 50m all-out + 1:30 min descanso activo ...".
+  static String _extractDescanso(String text) {
+    final m = RegExp(
+      r'(\d[\d:.]*\s*(?:min|minutos|seg|segundos|s))\s*(?:de\s+)?descanso',
+      caseSensitive: false,
+    ).firstMatch(text);
+    return m != null ? m.group(1)!.trim() : '';
+  }
+
   static bool _isMerged(List<Data?> row) {
     if (row.isEmpty || row[0]?.value == null) return false;
     // If columns 1-3 are all null → merged row
