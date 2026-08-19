@@ -70,12 +70,14 @@ class _WeekScreenState extends State<WeekScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Row(children: [
-                          Text(
-                            _cleanDayName(day.name),
-                            style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w800,
-                              color: isToday ? AppTheme.orange : AppTheme.navy,
+                          Flexible(
+                            child: Text(
+                              _cleanDayName(day.name),
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w800,
+                                color: isToday ? AppTheme.orange : AppTheme.navy,
+                              ),
                             ),
                           ),
                           if (isToday) ...[
