@@ -28,6 +28,13 @@ class PivoteApp extends StatelessWidget {
         title: 'Pivote Training',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.theme,
+        // Tocar fuera de un campo de texto oculta el teclado (útil con
+        // teclados numéricos que no tienen botón "return").
+        builder: (context, child) => GestureDetector(
+          behavior: HitTestBehavior.translucent,
+          onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
+          child: child,
+        ),
         home: const MainScaffold(),
       ),
     );

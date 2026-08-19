@@ -148,11 +148,14 @@ class SettingsScreen extends StatelessWidget {
   }) => Container(
     margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
     decoration: BoxDecoration(
-      color: Colors.white,
       borderRadius: BorderRadius.circular(14),
       boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 6)],
     ),
-    child: ListTile(
+    child: Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(14),
+      clipBehavior: Clip.antiAlias,
+      child: ListTile(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       leading: Container(
         width: 40, height: 40,
@@ -166,6 +169,7 @@ class SettingsScreen extends StatelessWidget {
       subtitle: Text(subtitle, style: const TextStyle(fontSize: 12, color: Color(0xFF90A4AE))),
       trailing: trailing ?? const Icon(Icons.arrow_forward_ios, size: 16, color: Color(0xFFBBBBBB)),
       onTap: onTap,
+      ),
     ),
   );
 
