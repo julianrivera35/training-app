@@ -130,7 +130,18 @@ class AppProvider extends ChangeNotifier {
       final plan = ExcelParser.parse(bytes);
 
       _days      = plan.days;
-      _loads     = plan.loads;
+
+      // Preserve real logged loads across re-imports, matched by exercise name.
+      final realPrev = {for (final l in _loads) l.nombre: l.realKg};
+      _loads = [
+        for (final l in plan.loads)
+          realPrev.containsKey(l.nombre)
+              ? WeeklyLoad(
+                  grupo: l.grupo, nombre: l.nombre, dia: l.dia, orm: l.orm,
+                  unidad: l.unidad, planKg: l.planKg, realKg: realPrev[l.nombre])
+              : l,
+      ];
+
       _nutrition = plan.nutrition;
 
       // Preserve "comprado" marks across re-imports, matched by item name.
@@ -201,6 +212,15 @@ class AppProvider extends ChangeNotifier {
   int completedCount(String dayName) {
     final day = _days.where((d) => d.name == dayName).firstOrNull;
     return day?.exercises.where((e) => e.hecho).length ?? 0;
+  }
+
+  // ── Cargas (peso real por semana) ─────────────────────────────
+  Future<void> setRealLoad(String nombre, int week, double? kg) async {
+    final i = _loads.indexWhere((l) => l.nombre == nombre);
+    if (i < 0) return;
+    _loads[i] = _loads[i].copyWithReal(week, kg);
+    notifyListeners();
+    await DataService.saveLoads(_loads);
   }
 
   // ── Shopping list ──────────────────────────────────────────────

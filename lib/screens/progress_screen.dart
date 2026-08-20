@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import '../models/progress_entry.dart';
 import '../providers/app_provider.dart';
 import '../theme/app_theme.dart';
+import 'cargas_screen.dart';
 
 class ProgressScreen extends StatefulWidget {
   const ProgressScreen({super.key});
@@ -23,7 +24,7 @@ class _ProgressScreenState extends State<ProgressScreen> with SingleTickerProvid
   @override
   void initState() {
     super.initState();
-    _tab = TabController(length: 2, vsync: this);
+    _tab = TabController(length: 3, vsync: this);
   }
 
   @override
@@ -44,15 +45,18 @@ class _ProgressScreenState extends State<ProgressScreen> with SingleTickerProvid
           labelColor: Colors.white,
           unselectedLabelColor: Colors.white54,
           indicatorColor: AppTheme.orange,
+          isScrollable: true,
+          tabAlignment: TabAlignment.center,
           tabs: const [
             Tab(text: 'Registrar', icon: Icon(Icons.edit, size: 18)),
             Tab(text: 'Historial', icon: Icon(Icons.show_chart, size: 18)),
+            Tab(text: 'Cargas', icon: Icon(Icons.fitness_center, size: 18)),
           ],
         ),
       ),
       body: TabBarView(
         controller: _tab,
-        children: [_buildForm(), _buildHistory()],
+        children: [_buildForm(), _buildHistory(), const CargasScreen()],
       ),
     );
   }
