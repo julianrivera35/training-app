@@ -5,6 +5,7 @@ class ProgressEntry {
   final int? dolorHombro;
   final int? dolorRodilla;
   final double? velocidadLanzamiento; // km/h (opcional)
+  final int? esfuerzo;                 // RPE percibido 1-10 (opcional)
   final String notas;
   final Map<String, double> pesosReales; // ejercicio → kg usado
 
@@ -15,6 +16,7 @@ class ProgressEntry {
     this.dolorHombro,
     this.dolorRodilla,
     this.velocidadLanzamiento,
+    this.esfuerzo,
     this.notas = '',
     Map<String, double>? pesosReales,
   }) : pesosReales = pesosReales ?? {};
@@ -26,6 +28,7 @@ class ProgressEntry {
     'dolorHombro': dolorHombro,
     'dolorRodilla': dolorRodilla,
     'velocidadLanzamiento': velocidadLanzamiento,
+    'esfuerzo': esfuerzo,
     'notas': notas,
     'pesosReales': pesosReales,
   };
@@ -37,6 +40,7 @@ class ProgressEntry {
     dolorHombro: j['dolorHombro'] as int?,
     dolorRodilla: j['dolorRodilla'] as int?,
     velocidadLanzamiento: (j['velocidadLanzamiento'] as num?)?.toDouble(),
+    esfuerzo: j['esfuerzo'] as int?,
     notas: j['notas'] ?? '',
     pesosReales: (j['pesosReales'] as Map<String, dynamic>? ?? {})
         .map((k, v) => MapEntry(k, (v as num).toDouble())),

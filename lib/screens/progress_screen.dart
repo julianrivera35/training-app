@@ -18,6 +18,7 @@ class _ProgressScreenState extends State<ProgressScreen> with SingleTickerProvid
   final _velCtrl  = TextEditingController();
   final _notasCtrl = TextEditingController();
   int _dolorLumbar = 0, _dolorHombro = 0, _dolorRodilla = 0;
+  int _esfuerzo = 0; // RPE 1-10 (0 = sin registrar)
 
   @override
   void initState() {
@@ -87,6 +88,10 @@ class _ProgressScreenState extends State<ProgressScreen> with SingleTickerProvid
         _painSlider('🔵 Hombro D', _dolorHombro, (v) => setState(() => _dolorHombro = v)),
         const SizedBox(height: 8),
         _painSlider('🟡 Rodilla I', _dolorRodilla, (v) => setState(() => _dolorRodilla = v)),
+        const SizedBox(height: 16),
+
+        _sectionLabel('ESFUERZO PERCIBIDO — RPE (1 = muy suave · 10 = máximo)'),
+        _rpeSlider(),
         const SizedBox(height: 16),
 
         _sectionLabel('VELOCIDAD DE LANZAMIENTO (opcional)'),
@@ -172,6 +177,42 @@ class _ProgressScreenState extends State<ProgressScreen> with SingleTickerProvid
     return AppTheme.red;
   }
 
+  Color _rpeColor(int v) {
+    if (v <= 0) return const Color(0xFFBBBBBB);
+    if (v <= 4) return AppTheme.green;
+    if (v <= 7) return AppTheme.blue;
+    return AppTheme.orange;
+  }
+
+  Widget _rpeSlider() => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(12),
+      boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 4)],
+    ),
+    child: Row(children: [
+      const SizedBox(width: 44, child: Text('RPE', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700))),
+      Expanded(
+        child: Slider(
+          value: _esfuerzo.toDouble(),
+          min: 0, max: 10, divisions: 10,
+          activeColor: _rpeColor(_esfuerzo),
+          label: _esfuerzo == 0 ? '—' : '$_esfuerzo',
+          onChanged: (v) => setState(() => _esfuerzo = v.toInt()),
+        ),
+      ),
+      SizedBox(
+        width: 32,
+        child: Text(
+          _esfuerzo == 0 ? '—' : '$_esfuerzo',
+          textAlign: TextAlign.center,
+          style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: _rpeColor(_esfuerzo)),
+        ),
+      ),
+    ]),
+  );
+
   void _save() {
     final p = context.read<AppProvider>();
     final entry = ProgressEntry(
@@ -181,11 +222,12 @@ class _ProgressScreenState extends State<ProgressScreen> with SingleTickerProvid
       dolorHombro: _dolorHombro,
       dolorRodilla: _dolorRodilla,
       velocidadLanzamiento: double.tryParse(_velCtrl.text),
+      esfuerzo: _esfuerzo > 0 ? _esfuerzo : null,
       notas: _notasCtrl.text.trim(),
     );
     p.addProgress(entry);
     _pesoCtrl.clear(); _velCtrl.clear(); _notasCtrl.clear();
-    setState(() { _dolorLumbar = 0; _dolorHombro = 0; _dolorRodilla = 0; });
+    setState(() { _dolorLumbar = 0; _dolorHombro = 0; _dolorRodilla = 0; _esfuerzo = 0; });
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('✅ Registro guardado'), backgroundColor: AppTheme.green),
     );
@@ -295,6 +337,18 @@ class _ProgressScreenState extends State<ProgressScreen> with SingleTickerProvid
             Text(fmt.format(e.fecha),
               style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppTheme.navy)),
             const Spacer(),
+            if (e.esfuerzo != null) ...[
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: _rpeColor(e.esfuerzo!).withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text('RPE ${e.esfuerzo}',
+                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: _rpeColor(e.esfuerzo!))),
+              ),
+              const SizedBox(width: 8),
+            ],
             if (e.peso != null)
               Text('${e.peso!.toStringAsFixed(1)} kg',
                 style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: AppTheme.navy)),
