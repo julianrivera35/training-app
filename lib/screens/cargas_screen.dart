@@ -51,7 +51,7 @@ class _CargasScreenState extends State<CargasScreen> {
           margin: const EdgeInsets.all(16),
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: AppTheme.navy.withOpacity(0.06),
+            color: AppTheme.navy.withValues(alpha: 0.06),
             borderRadius: BorderRadius.circular(10),
           ),
           child: Row(children: [
@@ -88,7 +88,7 @@ class _CargasScreenState extends State<CargasScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 4)],
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 4)],
       ),
       child: Column(children: [
         InkWell(
@@ -104,9 +104,9 @@ class _CargasScreenState extends State<CargasScreen> {
                   Text('1RM ${_fmt(l.orm)} · ${l.unidad}', style: const TextStyle(fontSize: 11, color: Color(0xFF90A4AE))),
                 ]),
               ),
-              _weekChip('Sem $week', 'Plan', plan, AppTheme.navy, null),
+              _weekChip('Plan', plan, AppTheme.navy, null),
               const SizedBox(width: 6),
-              _weekChip('Sem $week', 'Real', real, AppTheme.orange, () => _editReal(context, p, l, week)),
+              _weekChip('Real', real, AppTheme.orange, () => _editReal(context, p, l, week)),
               Icon(isExp ? Icons.expand_less : Icons.expand_more, color: const Color(0xFFBBBBBB)),
             ]),
           ),
@@ -130,7 +130,7 @@ class _CargasScreenState extends State<CargasScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 7, horizontal: 8),
       decoration: BoxDecoration(
-        color: isCurrent ? AppTheme.navy.withOpacity(0.05) : null,
+        color: isCurrent ? AppTheme.navy.withValues(alpha: 0.05) : null,
         borderRadius: BorderRadius.circular(8),
       ),
       child: Row(children: [
@@ -150,7 +150,7 @@ class _CargasScreenState extends State<CargasScreen> {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
             decoration: BoxDecoration(
-              color: real != null ? AppTheme.orange.withOpacity(0.12) : const Color(0xFFF0F0F0),
+              color: real != null ? AppTheme.orange.withValues(alpha: 0.12) : const Color(0xFFF0F0F0),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Text(
@@ -165,15 +165,15 @@ class _CargasScreenState extends State<CargasScreen> {
     );
   }
 
-  Widget _weekChip(String top, String label, double? value, Color color, VoidCallback? onTap) {
+  Widget _weekChip(String label, double? value, Color color, VoidCallback? onTap) {
     final chip = Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: value != null || onTap == null ? color.withOpacity(0.12) : const Color(0xFFF0F0F0),
+        color: value != null || onTap == null ? color.withValues(alpha: 0.12) : const Color(0xFFF0F0F0),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Column(mainAxisSize: MainAxisSize.min, children: [
-        Text(label, style: TextStyle(fontSize: 8.5, fontWeight: FontWeight.w700, color: color.withOpacity(0.7))),
+        Text(label, style: TextStyle(fontSize: 8.5, fontWeight: FontWeight.w700, color: color.withValues(alpha: 0.7))),
         Text(value != null ? _fmt(value) : (onTap != null ? '+' : '—'),
           style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: color)),
       ]),
@@ -183,7 +183,8 @@ class _CargasScreenState extends State<CargasScreen> {
   }
 
   Future<void> _editReal(BuildContext context, AppProvider p, WeeklyLoad l, int week) async {
-    final ctrl = TextEditingController(text: l.realForWeek(week)?.let(_fmt) ?? '');
+    final current = l.realForWeek(week);
+    final ctrl = TextEditingController(text: current != null ? _fmt(current) : '');
     final result = await showDialog<double?>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -204,7 +205,7 @@ class _CargasScreenState extends State<CargasScreen> {
           ),
         ]),
         actions: [
-          if (l.realForWeek(week) != null)
+          if (current != null)
             TextButton(
               onPressed: () => Navigator.pop(ctx, double.nan), // sentinel: borrar
               child: const Text('Borrar', style: TextStyle(color: AppTheme.red)),
@@ -226,8 +227,4 @@ class _CargasScreenState extends State<CargasScreen> {
   }
 
   String _fmt(double v) => v == v.truncateToDouble() ? v.toInt().toString() : v.toStringAsFixed(1);
-}
-
-extension _Let<T> on T {
-  R let<R>(R Function(T) f) => f(this);
 }

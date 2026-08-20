@@ -26,9 +26,12 @@ class TodayScreen extends StatelessWidget {
             backgroundColor: AppTheme.navy,
             flexibleSpace: FlexibleSpaceBar(
               titlePadding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
-              title: Row(children: [
-                Text(p.todayDayName,
-                  style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w800)),
+              title: Row(mainAxisSize: MainAxisSize.min, children: [
+                Flexible(
+                  child: Text(p.todayDayName,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w800)),
+                ),
                 const SizedBox(width: 8),
                 _badge('Sem ${p.currentWeek}', AppTheme.orange),
               ]),

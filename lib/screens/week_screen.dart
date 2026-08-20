@@ -46,7 +46,7 @@ class _WeekScreenState extends State<WeekScreen> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(14),
         border: isToday ? Border.all(color: AppTheme.orange, width: 2) : null,
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 8, offset: const Offset(0, 2))],
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 8, offset: const Offset(0, 2))],
       ),
       child: Column(
         children: [
@@ -104,7 +104,7 @@ class _WeekScreenState extends State<WeekScreen> {
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFF5E35B1).withOpacity(0.12),
+                                  color: const Color(0xFF5E35B1).withValues(alpha: 0.12),
                                   borderRadius: BorderRadius.circular(6),
                                 ),
                                 child: const Text('⚡ DOBLE SESIÓN',
@@ -144,11 +144,11 @@ class _WeekScreenState extends State<WeekScreen> {
     return name.replaceAll(RegExp(r'^[^\wÁÉÍÓÚáéíóúÑñ\s]+\s*'), '').trim();
   }
 
-  Widget _noplan() => Center(
+  Widget _noplan() => const Center(
     child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-      const Icon(Icons.calendar_month_outlined, size: 64, color: Color(0xFFCFD8DC)),
-      const SizedBox(height: 16),
-      const Text('Importa tu Excel primero', style: TextStyle(fontSize: 18, color: Color(0xFF546E7A))),
+      Icon(Icons.calendar_month_outlined, size: 64, color: Color(0xFFCFD8DC)),
+      SizedBox(height: 16),
+      Text('Importa tu Excel primero', style: TextStyle(fontSize: 18, color: Color(0xFF546E7A))),
     ]),
   );
 }

@@ -26,7 +26,7 @@ class SectionHeader extends StatelessWidget {
       margin: const EdgeInsets.fromLTRB(16, 14, 16, 4),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: _accent.withOpacity(0.08),
+        color: _accent.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(10),
         border: Border(left: BorderSide(color: _accent, width: 4)),
       ),

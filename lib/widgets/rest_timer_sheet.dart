@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../providers/rest_timer.dart';
 import '../theme/app_theme.dart';
@@ -82,7 +81,7 @@ class RestTimerSheet extends StatelessWidget {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(24),
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.15), blurRadius: 24, offset: const Offset(0, -4))],
+          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.15), blurRadius: 24, offset: const Offset(0, -4))],
         ),
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
         child: Column(mainAxisSize: MainAxisSize.min, children: [

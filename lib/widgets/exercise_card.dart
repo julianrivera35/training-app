@@ -55,7 +55,7 @@ class _ExerciseCardState extends State<ExerciseCard> {
           color: isDone ? const Color(0xFF81C784) : Colors.transparent,
           width: 1.5,
         ),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.07), blurRadius: 8, offset: const Offset(0, 2))],
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.07), blurRadius: 8, offset: const Offset(0, 2))],
       ),
       child: Column(children: [
         // ── Main tap area ────────────────────────────────────────
@@ -98,10 +98,10 @@ class _ExerciseCardState extends State<ExerciseCard> {
                       decoration: BoxDecoration(
                         color: isDone ? const Color(0xFFDCEDC8) : const Color(0xFFE8EEF7),
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: AppTheme.navy.withOpacity(0.2)),
+                        border: Border.all(color: AppTheme.navy.withValues(alpha: 0.2)),
                       ),
                       child: Row(mainAxisSize: MainAxisSize.min, children: [
-                        Icon(Icons.fitness_center, size: 13, color: AppTheme.navy.withOpacity(0.7)),
+                        Icon(Icons.fitness_center, size: 13, color: AppTheme.navy.withValues(alpha: 0.7)),
                         const SizedBox(width: 5),
                         Text(
                           '${widget.plannedKg!.toStringAsFixed(1)} kg',
@@ -113,7 +113,7 @@ class _ExerciseCardState extends State<ExerciseCard> {
                         const SizedBox(width: 4),
                         Text(
                           'recomendado',
-                          style: TextStyle(fontSize: 10, color: AppTheme.navy.withOpacity(0.55), fontWeight: FontWeight.w600),
+                          style: TextStyle(fontSize: 10, color: AppTheme.navy.withValues(alpha: 0.55), fontWeight: FontWeight.w600),
                         ),
                       ]),
                     )
@@ -192,7 +192,7 @@ class _ExerciseCardState extends State<ExerciseCard> {
     decoration: BoxDecoration(
       color: bg,
       borderRadius: BorderRadius.circular(20),
-      border: border != null ? Border.all(color: border.withOpacity(0.5)) : null,
+      border: border != null ? Border.all(color: border.withValues(alpha: 0.5)) : null,
     ),
     child: Text(text, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: fg)),
   );

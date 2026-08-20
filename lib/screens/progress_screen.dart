@@ -73,7 +73,7 @@ class _ProgressScreenState extends State<ProgressScreen> with SingleTickerProvid
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(12),
-            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 6)],
+            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 6)],
           ),
           child: Text(
             DateFormat('EEEE d MMMM yyyy', 'es').format(DateTime.now()),
@@ -151,7 +151,7 @@ class _ProgressScreenState extends State<ProgressScreen> with SingleTickerProvid
     decoration: BoxDecoration(
       color: Colors.white,
       borderRadius: BorderRadius.circular(12),
-      boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 4)],
+      boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 4)],
     ),
     child: Row(children: [
       SizedBox(width: 90, child: Text(label, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600))),
@@ -193,7 +193,7 @@ class _ProgressScreenState extends State<ProgressScreen> with SingleTickerProvid
     decoration: BoxDecoration(
       color: Colors.white,
       borderRadius: BorderRadius.circular(12),
-      boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 4)],
+      boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 4)],
     ),
     child: Row(children: [
       const SizedBox(width: 44, child: Text('RPE', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700))),
@@ -285,7 +285,7 @@ class _ProgressScreenState extends State<ProgressScreen> with SingleTickerProvid
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(14),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8)],
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 8)],
       ),
       child: LineChart(LineChartData(
         gridData: const FlGridData(show: false),
@@ -306,7 +306,7 @@ class _ProgressScreenState extends State<ProgressScreen> with SingleTickerProvid
             isCurved: true, curveSmoothness: 0.3,
             color: AppTheme.navy, barWidth: 2.5,
             belowBarData: BarAreaData(
-              show: true, color: AppTheme.navy.withOpacity(0.08)),
+              show: true, color: AppTheme.navy.withValues(alpha: 0.08)),
             dotData: FlDotData(getDotPainter: (s, _, __, ___) =>
                 FlDotCirclePainter(radius: 4, color: AppTheme.navy, strokeWidth: 0)),
           ),
@@ -334,7 +334,7 @@ class _ProgressScreenState extends State<ProgressScreen> with SingleTickerProvid
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(12),
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 4)],
+          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 4)],
         ),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Row(children: [
@@ -345,7 +345,7 @@ class _ProgressScreenState extends State<ProgressScreen> with SingleTickerProvid
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
-                  color: _rpeColor(e.esfuerzo!).withOpacity(0.15),
+                  color: _rpeColor(e.esfuerzo!).withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text('RPE ${e.esfuerzo}',
@@ -377,7 +377,7 @@ class _ProgressScreenState extends State<ProgressScreen> with SingleTickerProvid
   Widget _painBadge(String text, int val) => Container(
     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
     decoration: BoxDecoration(
-      color: _painColor(val).withOpacity(0.15),
+      color: _painColor(val).withValues(alpha: 0.15),
       borderRadius: BorderRadius.circular(8),
     ),
     child: Text(text, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: _painColor(val))),
