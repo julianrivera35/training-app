@@ -139,6 +139,8 @@ class ExcelParser {
     if (sheet == null) return [];
 
     final days = <TrainingDay>[];
+    final warmup = <Exercise>[];   // ejercicios de "TODOS LOS DÍAS" (antes del 1er día)
+    String warmupSection = '🔥 Activación + Prehab (diario)';
     TrainingDay? current;
     String currentSection = '';
     String? pendingActivity; // encabezado 🏊/🧘 esperando su fila de detalle
@@ -151,23 +153,31 @@ class ExcelParser {
       final c = _s(row, 2);
       final d = _s(row, 3);
 
-      // Skip title row and column header row
-      if (!headerSkipped && (a.contains('PROGRAMA') || a.contains('BLOQUE'))) {
-        headerSkipped = true; continue;
+      // Skip everything before the column-header row (título, leyenda,
+      // "BLOQUE | EJERCICIO | ..."), para que la leyenda no se cuele.
+      if (!headerSkipped) {
+        if (a.toUpperCase().startsWith('BLOQUE')) headerSkipped = true;
+        continue;
       }
-      if (a == 'BLOQUE' || a == 'EJERCICIO') continue;
 
       // Detect if row is "merged" (col B null means col A spans full width)
       final isMerged = _isMerged(row);
 
       if (isMerged) {
-        // Day header?
-        if (_dayNames.any((d2) => a.toUpperCase().contains(d2))) {
+        // Day header — debe EMPEZAR con el nombre del día (no solo contenerlo),
+        // para que "🧘 FLEXIBILIDAD POST-MARTES" no se tome como un día nuevo.
+        if (_isDayHeader(a)) {
           if (current != null) days.add(current);
           current = TrainingDay(name: a, exercises: []);
           currentSection = '';
           pendingActivity = null;
-        } else if (current != null) {
+        } else if (current == null) {
+          // Antes del primer día: encabezado del calentamiento diario.
+          final up = a.toUpperCase();
+          if (up.contains('TODOS LOS DÍAS') || up.contains('ACTIVACIÓN') || up.contains('PREHAB')) {
+            warmupSection = a.trim();
+          }
+        } else {
           if (_isActivityHeader(a)) {
             // Bloque de natación/flexibilidad: el título va ahora; el detalle
             // (qué hacer) viene en la siguiente fila de ancho completo.
@@ -185,14 +195,14 @@ class ExcelParser {
             ));
             pendingActivity = null;
           } else {
-            // Encabezado de sección normal dentro del día.
+            // Encabezado de sección normal dentro del día (incluye 🌅 MAÑANA / 🌆 TARDE).
             currentSection = a;
           }
         }
-      } else if (b.isNotEmpty && current != null) {
+      } else if (b.isNotEmpty) {
         // Exercise row
         pendingActivity = null;
-        current.exercises.add(Exercise(
+        final ex = Exercise(
           bloque: a,
           nombre: b,
           peso: c,
@@ -200,13 +210,46 @@ class ExcelParser {
           series: _s(row, 4),
           descanso: _s(row, 5),
           instruccion: _s(row, 6),
-          seccion: currentSection,
-          dia: current.name,
-        ));
+          seccion: current == null ? warmupSection : currentSection,
+          dia: current?.name ?? '',
+        );
+        if (current == null) {
+          warmup.add(ex);   // calentamiento diario (antes del primer día)
+        } else {
+          current.exercises.add(ex);
+        }
       }
     }
     if (current != null) days.add(current);
+
+    // Prepend el calentamiento diario a cada día (copias independientes).
+    if (warmup.isNotEmpty) {
+      for (final day in days) {
+        final clones = warmup
+            .map((w) => Exercise(
+                  bloque: w.bloque,
+                  nombre: w.nombre,
+                  peso: w.peso,
+                  reps: w.reps,
+                  series: w.series,
+                  descanso: w.descanso,
+                  instruccion: w.instruccion,
+                  seccion: w.seccion,
+                  dia: day.name,
+                ))
+            .toList();
+        day.exercises.insertAll(0, clones);
+      }
+    }
+
     return days;
+  }
+
+  /// A day header must START with a weekday name (after stripping any leading
+  /// emoji/symbols), so "🧘 FLEXIBILIDAD POST-MARTES" is NOT a new day.
+  static bool _isDayHeader(String a) {
+    final up = a.replaceAll(RegExp(r'^[^A-Za-zÁÉÍÓÚÑáéíóúñ]+'), '').toUpperCase();
+    return _dayNames.any((d) => up.startsWith(d));
   }
 
   // ── CARGAS Y PROGRESIÓN ───────────────────────────────────────

@@ -4,6 +4,7 @@ import '../models/exercise.dart';
 import '../providers/app_provider.dart';
 import '../theme/app_theme.dart';
 import '../widgets/exercise_card.dart';
+import '../widgets/section_header.dart';
 
 class WeekScreen extends StatefulWidget {
   const WeekScreen({super.key});
@@ -90,10 +91,26 @@ class _WeekScreenState extends State<WeekScreen> {
                             ),
                           ],
                         ]),
-                        const SizedBox(height: 3),
-                        Text(
-                          '$total ejercicios${done > 0 ? ' · $done completados' : ''}',
-                          style: const TextStyle(fontSize: 12, color: Color(0xFF90A4AE)),
+                        const SizedBox(height: 4),
+                        Wrap(
+                          spacing: 6, runSpacing: 4,
+                          crossAxisAlignment: WrapCrossAlignment.center,
+                          children: [
+                            Text(
+                              '$total ejercicios${done > 0 ? ' · $done completados' : ''}',
+                              style: const TextStyle(fontSize: 12, color: Color(0xFF90A4AE)),
+                            ),
+                            if (isDoubleSession(day.name))
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF5E35B1).withOpacity(0.12),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: const Text('⚡ DOBLE SESIÓN',
+                                  style: TextStyle(fontSize: 9.5, fontWeight: FontWeight.w800, color: Color(0xFF5E35B1))),
+                              ),
+                          ],
                         ),
                       ],
                     ),
@@ -109,7 +126,7 @@ class _WeekScreenState extends State<WeekScreen> {
           // Exercise list (expanded)
           if (isExpanded) ...[
             const Divider(height: 1, color: Color(0xFFF0F0F0)),
-            ...day.exercises.map((ex) => ExerciseCard(
+            ...sectionedExercises(day.exercises, (ex) => ExerciseCard(
               exercise: ex,
               plannedKg: p.plannedWeightFor(ex.nombre),
               onToggle: () => p.toggleExercise(day.name, ex.nombre),

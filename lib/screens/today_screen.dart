@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../providers/app_provider.dart';
 import '../theme/app_theme.dart';
 import '../widgets/exercise_card.dart';
+import '../widgets/section_header.dart';
 
 class TodayScreen extends StatelessWidget {
   const TodayScreen({super.key});
@@ -50,12 +51,12 @@ class TodayScreen extends StatelessWidget {
                         style: const TextStyle(color: Colors.white70, fontSize: 12),
                       ),
                       const SizedBox(height: 4),
-                      Row(children: [
+                      Wrap(spacing: 6, runSpacing: 4, children: [
                         _badge(p.currentPhase, Colors.white24),
-                        if (today != null) ...[
-                          const SizedBox(width: 6),
+                        if (today != null)
                           _badge('${today.exercises.length} ejercicios', Colors.white12),
-                        ],
+                        if (today != null && isDoubleSession(today.name))
+                          _badge('⚡ DOBLE SESIÓN', Colors.white24),
                       ]),
                     ],
                   ),
@@ -73,17 +74,13 @@ class TodayScreen extends StatelessWidget {
               child: _progressBar(today.exercises.length, p.completedCount(today.name)),
             ),
             SliverList(
-              delegate: SliverChildBuilderDelegate(
-                (_, i) {
-                  final ex = today.exercises[i];
-                  return ExerciseCard(
-                    exercise: ex,
-                    plannedKg: p.plannedWeightFor(ex.nombre),
-                    onToggle: () => p.toggleExercise(today.name, ex.nombre),
-                    onWeightLogged: (kg) => p.setExerciseRealWeight(today.name, ex.nombre, kg),
-                  );
-                },
-                childCount: today.exercises.length,
+              delegate: SliverChildListDelegate(
+                sectionedExercises(today.exercises, (ex) => ExerciseCard(
+                  exercise: ex,
+                  plannedKg: p.plannedWeightFor(ex.nombre),
+                  onToggle: () => p.toggleExercise(today.name, ex.nombre),
+                  onWeightLogged: (kg) => p.setExerciseRealWeight(today.name, ex.nombre, kg),
+                )),
               ),
             ),
             const SliverToBoxAdapter(child: SizedBox(height: 40)),
