@@ -130,18 +130,23 @@ class _ExerciseCardState extends State<ExerciseCard> {
                         style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF546E7A))),
                     ),
 
-                  // Series × Reps + Descanso
-                  Row(children: [
-                    if (ex.series.isNotEmpty && ex.reps.isNotEmpty)
-                      _chip('${ex.series} × ${ex.reps}', AppTheme.navy, Colors.white),
-                    if (ex.descanso.isNotEmpty) ...[
-                      const SizedBox(width: 6),
-                      GestureDetector(
-                        onTap: () => RestTimerSheet.show(context, ex.descanso, ex.nombre),
-                        child: _chip('⏱ ${ex.descanso}', const Color(0xFFFFF3E0), const Color(0xFFE65100), border: const Color(0xFFFFCC02)),
-                      ),
+                  // Series / Reps + Descanso (etiquetas explícitas)
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      if (ex.series.isNotEmpty)
+                        _chip('Series: ${ex.series}', AppTheme.navy, Colors.white),
+                      if (ex.reps.isNotEmpty)
+                        _chip('Reps: ${ex.reps}', AppTheme.blue, Colors.white),
+                      if (ex.descanso.isNotEmpty)
+                        GestureDetector(
+                          onTap: () => RestTimerSheet.show(context, ex.descanso, ex.nombre),
+                          child: _chip('⏱ ${ex.descanso}', const Color(0xFFFFF3E0), const Color(0xFFE65100), border: const Color(0xFFFFCC02)),
+                        ),
                     ],
-                  ]),
+                  ),
                 ]),
               ),
 
