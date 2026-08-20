@@ -6,6 +6,7 @@ import '../models/exercise.dart';
 import '../models/weekly_load.dart';
 import '../models/nutrition_plan.dart';
 import '../models/progress_entry.dart';
+import '../models/shopping_item.dart';
 
 class DataService {
   static const _keyWeek    = 'current_week';
@@ -14,6 +15,7 @@ class DataService {
   static const _fileLoads  = 'weekly_loads.json';
   static const _fileNutri  = 'nutrition.json';
   static const _fileProgress = 'progress.json';
+  static const _fileShopping = 'shopping.json';
 
   // ── SharedPreferences ─────────────────────────────────────────
   static Future<int> getCurrentWeek() async {
@@ -103,5 +105,18 @@ class DataService {
     if (raw == null) return [];
     final list = jsonDecode(raw) as List;
     return list.map((j) => ProgressEntry.fromJson(j as Map<String, dynamic>)).toList();
+  }
+
+  // ── Shopping list ─────────────────────────────────────────────
+  static Future<void> saveShopping(List<ShoppingItem> items) async {
+    final json = jsonEncode(items.map((s) => s.toJson()).toList());
+    await _write(_fileShopping, json);
+  }
+
+  static Future<List<ShoppingItem>> loadShopping() async {
+    final raw = await _read(_fileShopping);
+    if (raw == null) return [];
+    final list = jsonDecode(raw) as List;
+    return list.map((j) => ShoppingItem.fromJson(j as Map<String, dynamic>)).toList();
   }
 }

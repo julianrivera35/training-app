@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 class Exercise {
   final String bloque;
   final String nombre;

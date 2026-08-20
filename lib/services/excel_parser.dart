@@ -4,12 +4,19 @@ import 'package:excel/excel.dart';
 import '../models/exercise.dart';
 import '../models/weekly_load.dart';
 import '../models/nutrition_plan.dart';
+import '../models/shopping_item.dart';
 
 class ParsedPlan {
   final List<TrainingDay> days;
   final List<WeeklyLoad> loads;
   final NutritionPlan nutrition;
-  ParsedPlan({required this.days, required this.loads, required this.nutrition});
+  final List<ShoppingItem> shopping;
+  ParsedPlan({
+    required this.days,
+    required this.loads,
+    required this.nutrition,
+    required this.shopping,
+  });
 }
 
 class ExcelParser {
@@ -24,7 +31,53 @@ class ExcelParser {
     final days   = _parseSemanal(excel);
     final loads  = _parseCargas(excel);
     final nutri  = _parseNutricion(excel);
-    return ParsedPlan(days: days, loads: loads, nutrition: nutri);
+    final shop   = _parseMercado(excel);
+    return ParsedPlan(days: days, loads: loads, nutrition: nutri, shopping: shop);
+  }
+
+  // ── LISTA DEL MERCADO ─────────────────────────────────────────
+  static List<ShoppingItem> _parseMercado(Excel excel) {
+    Sheet? sheet;
+    for (final name in [
+      'LISTA DEL MERCADO', 'LISTA DE MERCADO', 'MERCADO', 'LISTA DEL MERCADO MENSUAL'
+    ]) {
+      sheet = excel.tables[name];
+      if (sheet != null) break;
+    }
+    if (sheet == null) return [];
+
+    final items = <ShoppingItem>[];
+    String currentCat = 'General';
+    bool headerPassed = false;
+
+    for (final row in sheet.rows) {
+      if (row.isEmpty) continue;
+      final a = _s(row, 0);
+      final b = _s(row, 1);
+
+      if (!headerPassed) {
+        final rowStr = row.map((c) => _s2(c)).join(' ').toUpperCase();
+        if (rowStr.contains('ÍTEM') || rowStr.contains('ITEM')) headerPassed = true;
+        continue;
+      }
+
+      // Category header: full-width row (no item in col B).
+      if (b.isEmpty) {
+        if (a.isNotEmpty) currentCat = a.trim();
+        continue;
+      }
+
+      // Item row: col A is the checkbox (☐ / ✓), col B the item name.
+      items.add(ShoppingItem(
+        categoria: currentCat,
+        nombre: b,
+        cantidad: _s(row, 2),
+        frecuencia: _s(row, 3),
+        notas: _s(row, 4),
+        comprado: a.contains('✓') || a.contains('☑'),
+      ));
+    }
+    return items;
   }
 
   /// Some tools (e.g. certain Excel exporters) write absolute relationship

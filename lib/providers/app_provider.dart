@@ -4,6 +4,7 @@ import '../models/exercise.dart';
 import '../models/weekly_load.dart';
 import '../models/nutrition_plan.dart';
 import '../models/progress_entry.dart';
+import '../models/shopping_item.dart';
 import '../services/excel_parser.dart';
 import '../services/data_service.dart';
 
@@ -13,6 +14,7 @@ class AppProvider extends ChangeNotifier {
   List<TrainingDay> _days = [];
   List<WeeklyLoad>  _loads = [];
   NutritionPlan     _nutrition = NutritionPlan.defaultPlan();
+  List<ShoppingItem> _shopping = [];
   List<ProgressEntry> _progress = [];
   int _currentWeek = 1;
   String? _lastImport;
@@ -23,6 +25,7 @@ class AppProvider extends ChangeNotifier {
   List<TrainingDay>   get days      => _days;
   List<WeeklyLoad>    get loads     => _loads;
   NutritionPlan       get nutrition => _nutrition;
+  List<ShoppingItem>  get shopping  => _shopping;
   List<ProgressEntry> get progress  => List.unmodifiable(_progress);
   int get currentWeek               => _currentWeek;
   String? get lastImport            => _lastImport;
@@ -36,6 +39,7 @@ class AppProvider extends ChangeNotifier {
     _days        = await DataService.loadPlan();
     _loads       = await DataService.loadLoads();
     _nutrition   = await DataService.loadNutrition();
+    _shopping    = await DataService.loadShopping();
     _progress    = await DataService.loadProgress();
     notifyListeners();
   }
@@ -128,11 +132,20 @@ class AppProvider extends ChangeNotifier {
       _days      = plan.days;
       _loads     = plan.loads;
       _nutrition = plan.nutrition;
+
+      // Preserve "comprado" marks across re-imports, matched by item name.
+      final compradoPrev = {for (final s in _shopping) s.nombre: s.comprado};
+      _shopping = plan.shopping;
+      for (final s in _shopping) {
+        s.comprado = compradoPrev[s.nombre] ?? s.comprado;
+      }
+
       _lastImport = DateTime.now().toIso8601String();
 
       await DataService.savePlan(_days);
       await DataService.saveLoads(_loads);
       await DataService.saveNutrition(_nutrition);
+      await DataService.saveShopping(_shopping);
       await DataService.setLastImport(_lastImport!);
 
       importStatus = ImportStatus.success;
@@ -188,5 +201,20 @@ class AppProvider extends ChangeNotifier {
   int completedCount(String dayName) {
     final day = _days.where((d) => d.name == dayName).firstOrNull;
     return day?.exercises.where((e) => e.hecho).length ?? 0;
+  }
+
+  // ── Shopping list ──────────────────────────────────────────────
+  Future<void> toggleShopping(ShoppingItem item) async {
+    item.comprado = !item.comprado;
+    notifyListeners();
+    await DataService.saveShopping(_shopping);
+  }
+
+  Future<void> resetShopping() async {
+    for (final s in _shopping) {
+      s.comprado = false;
+    }
+    notifyListeners();
+    await DataService.saveShopping(_shopping);
   }
 }
