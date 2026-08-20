@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:file_picker/file_picker.dart';
 import '../models/exercise.dart';
@@ -100,9 +99,10 @@ class AppProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
+      // FileType.any evita que iOS bloquee archivos por nombre/extensión
+      // (p. ej. "PIVOTES_FINAL (1).xlsx"). Validamos por contenido al parsear.
       final result = await FilePicker.platform.pickFiles(
-        type: FileType.custom,
-        allowedExtensions: ['xlsx'],
+        type: FileType.any,
         withData: true,
       );
       if (result == null || result.files.isEmpty) {
@@ -111,8 +111,17 @@ class AppProvider extends ChangeNotifier {
         return;
       }
 
-      final bytes = result.files.first.bytes;
+      final picked = result.files.first;
+      final bytes = picked.bytes;
       if (bytes == null) throw Exception('No se pudo leer el archivo');
+
+      final name = picked.name.toLowerCase();
+      // Un .xlsx es un ZIP: empieza con "PK". Si no, avisamos claro.
+      final looksXlsx = name.endsWith('.xlsx') ||
+          (bytes.length > 1 && bytes[0] == 0x50 && bytes[1] == 0x4B);
+      if (!looksXlsx) {
+        throw Exception('Selecciona un archivo Excel (.xlsx)');
+      }
 
       final plan = ExcelParser.parse(bytes);
 
@@ -155,23 +164,25 @@ class AppProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  // ── Exercise completion (session state, not persisted) ─────────
-  void toggleExercise(String dayName, String ejercicio) {
+  // ── Exercise completion (persisted) ───────────────────────────
+  Future<void> toggleExercise(String dayName, String ejercicio) async {
     final day = _days.where((d) => d.name == dayName).firstOrNull;
     if (day == null) return;
     final ex = day.exercises.where((e) => e.nombre == ejercicio).firstOrNull;
     if (ex == null) return;
     ex.hecho = !ex.hecho;
     notifyListeners();
+    await DataService.savePlan(_days);
   }
 
-  void setExerciseRealWeight(String dayName, String ejercicio, double? kg) {
+  Future<void> setExerciseRealWeight(String dayName, String ejercicio, double? kg) async {
     final day = _days.where((d) => d.name == dayName).firstOrNull;
     if (day == null) return;
     final ex = day.exercises.where((e) => e.nombre == ejercicio).firstOrNull;
     if (ex == null) return;
     ex.pesoReal = kg;
     notifyListeners();
+    await DataService.savePlan(_days);
   }
 
   int completedCount(String dayName) {
