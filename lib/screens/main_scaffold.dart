@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
+import '../widgets/rest_timer_sheet.dart';
 import 'today_screen.dart';
 import 'week_screen.dart';
 import 'nutrition_screen.dart';
@@ -27,7 +28,11 @@ class MainScaffold extends StatelessWidget {
         index: p.tabIndex,
         children: _screens,
       ),
-      bottomNavigationBar: BottomNavigationBar(
+      bottomNavigationBar: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const RestMiniBar(),
+          BottomNavigationBar(
         currentIndex: p.tabIndex,
         onTap: p.setTab,
         items: const [
@@ -36,6 +41,8 @@ class MainScaffold extends StatelessWidget {
           BottomNavigationBarItem(icon: Icon(Icons.restaurant_outlined), activeIcon: Icon(Icons.restaurant), label: 'Nutrición'),
           BottomNavigationBarItem(icon: Icon(Icons.show_chart_outlined), activeIcon: Icon(Icons.show_chart), label: 'Progreso'),
           BottomNavigationBarItem(icon: Icon(Icons.settings_outlined),   activeIcon: Icon(Icons.settings),   label: 'Ajustes'),
+        ],
+          ),
         ],
       ),
     );
