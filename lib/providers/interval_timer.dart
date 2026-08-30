@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
-import '../services/notification_service.dart';
+import '../services/audio_service.dart';
 
 /// Una fase concreta de la secuencia de intervalos.
 class IntervalPhase {
@@ -30,7 +30,6 @@ class IntervalTimerController extends ChangeNotifier {
   bool _finished = false;
   int _lastPhaseIndex = -1;
   List<IntervalPhase> _phases = const [];
-  final List<int> _scheduledIds = [];
 
   bool get active => _start != null;
   bool get finished => _finished;
@@ -90,18 +89,10 @@ class IntervalTimerController extends ChangeNotifier {
     _lastPhaseIndex = 0;
     HapticFeedback.heavyImpact();
 
-    // Programa un beep al inicio de cada fase + uno final.
-    _scheduledIds.clear();
-    int id = NotificationService.intervalBase;
-    for (final p in _phases) {
-      final title = p.hard ? '🏃 ¡${p.label.toUpperCase()}!' : '🚶 ${p.label}';
-      NotificationService.scheduleBeep(
-        id, p.startOffset, title, 'Ronda ${p.round} de $rounds · ${_fmt(p.seconds)}');
-      _scheduledIds.add(id++);
-    }
-    NotificationService.scheduleBeep(
-      id, totalSeconds, '✅ ¡Completado!', '$rounds rondas hechas 💪');
-    _scheduledIds.add(id);
+    // Audio de silencio en loop → mantiene la app viva en segundo plano
+    // para que el ticker siga sonando con la pantalla bloqueada.
+    AudioService.startKeepAlive();
+    AudioService.beep(times: 2); // arranque
 
     _startTicker();
     notifyListeners();
@@ -114,15 +105,19 @@ class IntervalTimerController extends ChangeNotifier {
         _ticker?.cancel();
         return;
       }
-      // Beep/haptic en primer plano al cruzar a una nueva fase.
+      // Beep + haptic al cruzar a una nueva fase (2 beeps para trabajo, 1 para descanso).
       final idx = currentIndex;
       if (idx != _lastPhaseIndex) {
         _lastPhaseIndex = idx;
         HapticFeedback.heavyImpact();
+        final p = currentPhase;
+        AudioService.beep(times: (p?.hard ?? false) ? 2 : 1);
       }
       if (elapsed >= totalSeconds && !_finished) {
         _finished = true;
         HapticFeedback.heavyImpact();
+        AudioService.beep(times: 3); // final
+        AudioService.stopKeepAlive();
         _ticker?.cancel();
       }
       notifyListeners();
@@ -135,16 +130,8 @@ class IntervalTimerController extends ChangeNotifier {
     _start = null;
     _finished = false;
     _lastPhaseIndex = -1;
-    await NotificationService.cancelIds(_scheduledIds);
-    _scheduledIds.clear();
+    await AudioService.stopKeepAlive();
     notifyListeners();
-  }
-
-  static String _fmt(int s) {
-    final m = s ~/ 60, r = s % 60;
-    if (m == 0) return '${r}s';
-    if (r == 0) return "$m'";
-    return '$m:${r.toString().padLeft(2, '0')}';
   }
 
   @override
