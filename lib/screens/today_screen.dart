@@ -5,6 +5,7 @@ import '../providers/app_provider.dart';
 import '../theme/app_theme.dart';
 import '../widgets/exercise_card.dart';
 import '../widgets/section_header.dart';
+import 'interval_timer_screen.dart';
 
 class TodayScreen extends StatelessWidget {
   const TodayScreen({super.key});
@@ -24,6 +25,15 @@ class TodayScreen extends StatelessWidget {
             collapsedHeight: 56,
             pinned: true,
             backgroundColor: AppTheme.navy,
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.timer_outlined, color: Colors.white),
+                tooltip: 'Timer de intervalos',
+                onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const IntervalTimerScreen()),
+                ),
+              ),
+            ],
             flexibleSpace: FlexibleSpaceBar(
               titlePadding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
               title: Row(mainAxisSize: MainAxisSize.min, children: [

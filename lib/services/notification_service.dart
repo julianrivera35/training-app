@@ -65,4 +65,39 @@ class NotificationService {
       await _plugin.cancel(_restId);
     } catch (_) {}
   }
+
+  /// Base id for interval-timer notifications (avoids clashing with _restId).
+  static const int intervalBase = 2000;
+
+  /// Schedules a beep [secondsFromNow] seconds from now (interval boundaries).
+  static Future<void> scheduleBeep(int id, int secondsFromNow, String title, String body) async {
+    if (!_ready) return;
+    final delay = secondsFromNow < 1 ? 1 : secondsFromNow;
+    try {
+      final when = tz.TZDateTime.now(tz.local).add(Duration(seconds: delay));
+      await _plugin.zonedSchedule(
+        id, title, body, when,
+        const NotificationDetails(
+          iOS: DarwinNotificationDetails(presentSound: true, presentAlert: true),
+          android: AndroidNotificationDetails(
+            'interval_timer', 'Timer de intervalos',
+            channelDescription: 'Avisa en cada cambio de intervalo',
+            importance: Importance.max, priority: Priority.high),
+        ),
+        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        uiLocalNotificationDateInterpretation:
+            UILocalNotificationDateInterpretation.absoluteTime,
+      );
+    } catch (e) {
+      debugPrint('NotificationService.scheduleBeep failed: $e');
+    }
+  }
+
+  static Future<void> cancelIds(Iterable<int> ids) async {
+    for (final id in ids) {
+      try {
+        await _plugin.cancel(id);
+      } catch (_) {}
+    }
+  }
 }

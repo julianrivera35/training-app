@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'providers/app_provider.dart';
 import 'providers/rest_timer.dart';
+import 'providers/interval_timer.dart';
 import 'services/notification_service.dart';
 import 'screens/main_scaffold.dart';
 import 'theme/app_theme.dart';
@@ -29,6 +30,7 @@ class PivoteApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => AppProvider()..init()),
         ChangeNotifierProvider(create: (_) => RestTimerController()),
+        ChangeNotifierProvider(create: (_) => IntervalTimerController()),
       ],
       child: MaterialApp(
         title: 'Pivote Training',
