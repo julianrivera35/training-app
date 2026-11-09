@@ -128,9 +128,9 @@ class _WeekScreenState extends State<WeekScreen> {
             const Divider(height: 1, color: Color(0xFFF0F0F0)),
             ...sectionedExercises(day.exercises, (ex) => ExerciseCard(
               exercise: ex,
+              isDone: p.isDone(day.name, ex.nombre),
               plannedKg: p.plannedWeightFor(ex.nombre),
-              onToggle: () => p.toggleExercise(day.name, ex.nombre),
-              onWeightLogged: (kg) => p.setExerciseRealWeight(day.name, ex.nombre, kg),
+              onToggle: () => p.toggleDone(day.name, ex.nombre),
             )),
             const SizedBox(height: 8),
           ],

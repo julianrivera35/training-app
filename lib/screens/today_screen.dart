@@ -90,9 +90,9 @@ class TodayScreen extends StatelessWidget {
               delegate: SliverChildListDelegate(
                 sectionedExercises(today.exercises, (ex) => ExerciseCard(
                   exercise: ex,
+                  isDone: p.isDone(today.name, ex.nombre),
                   plannedKg: p.plannedWeightFor(ex.nombre),
-                  onToggle: () => p.toggleExercise(today.name, ex.nombre),
-                  onWeightLogged: (kg) => p.setExerciseRealWeight(today.name, ex.nombre, kg),
+                  onToggle: () => p.toggleDone(today.name, ex.nombre),
                 )),
               ),
             ),

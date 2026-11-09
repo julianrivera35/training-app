@@ -8,11 +8,9 @@ class Exercise {
   final String instruccion;
   final String seccion;
   final String dia;
-  bool hecho;
-  double? pesoReal;
 
-  Exercise({
-    required this.bloque,
+  const Exercise({
+    this.bloque = '',
     required this.nombre,
     this.peso = '',
     this.reps = '',
@@ -21,15 +19,21 @@ class Exercise {
     this.instruccion = '',
     this.seccion = '',
     this.dia = '',
-    this.hecho = false,
-    this.pesoReal,
   });
+
+  /// true solo si el descanso es un tiempo real (3 min, 90s, 2:30…),
+  /// no "—", vacío ni texto como "cada lado".
+  bool get tieneDescanso {
+    final s = descanso.toLowerCase();
+    if (!RegExp(r'\d').hasMatch(s)) return false;
+    return RegExp(r'(\d+\s*(min|seg|s)\b)|(\d+:\d{2})|(\d+\s*min)').hasMatch(s) ||
+        RegExp(r"^\d+'?$").hasMatch(s.trim());
+  }
 
   Map<String, dynamic> toJson() => {
     'bloque': bloque, 'nombre': nombre, 'peso': peso,
     'reps': reps, 'series': series, 'descanso': descanso,
     'instruccion': instruccion, 'seccion': seccion, 'dia': dia,
-    'hecho': hecho, 'pesoReal': pesoReal,
   };
 
   factory Exercise.fromJson(Map<String, dynamic> j) => Exercise(
@@ -37,8 +41,7 @@ class Exercise {
     peso: j['peso'] ?? '', reps: j['reps'] ?? '',
     series: j['series'] ?? '', descanso: j['descanso'] ?? '',
     instruccion: j['instruccion'] ?? '', seccion: j['seccion'] ?? '',
-    dia: j['dia'] ?? '', hecho: j['hecho'] ?? false,
-    pesoReal: (j['pesoReal'] as num?)?.toDouble(),
+    dia: j['dia'] ?? '',
   );
 }
 

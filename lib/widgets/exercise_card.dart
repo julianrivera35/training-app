@@ -6,16 +6,16 @@ import 'rest_timer_sheet.dart';
 
 class ExerciseCard extends StatefulWidget {
   final Exercise exercise;
+  final bool isDone;
   final double? plannedKg;
   final VoidCallback? onToggle;
-  final ValueChanged<double?>? onWeightLogged;
 
   const ExerciseCard({
     super.key,
     required this.exercise,
+    this.isDone = false,
     this.plannedKg,
     this.onToggle,
-    this.onWeightLogged,
   });
 
   @override
@@ -24,26 +24,15 @@ class ExerciseCard extends StatefulWidget {
 
 class _ExerciseCardState extends State<ExerciseCard> {
   bool _expanded = false;
-  final _ctrl = TextEditingController();
-
-  @override
-  void initState() {
-    super.initState();
-    if (widget.exercise.pesoReal != null) {
-      _ctrl.text = widget.exercise.pesoReal!.toStringAsFixed(1);
-    }
-  }
-
-  @override
-  void dispose() { _ctrl.dispose(); super.dispose(); }
 
   Color get _catColor => AppTheme.catColor(widget.exercise.bloque);
 
   @override
   Widget build(BuildContext context) {
     final ex = widget.exercise;
-    final isDone = ex.hecho;
+    final isDone = widget.isDone;
     final hasRec = widget.plannedKg != null;
+    final hasChip = ex.bloque.trim().isNotEmpty;
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 200),
@@ -58,28 +47,26 @@ class _ExerciseCardState extends State<ExerciseCard> {
         boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.07), blurRadius: 8, offset: const Offset(0, 2))],
       ),
       child: Column(children: [
-        // ── Main tap area ────────────────────────────────────────
         InkWell(
           borderRadius: BorderRadius.circular(14),
           onTap: () => setState(() => _expanded = !_expanded),
           child: Padding(
             padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
             child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              // Category chip (vertical)
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-                decoration: BoxDecoration(color: _catColor, borderRadius: BorderRadius.circular(7)),
-                child: Text(
-                  _shortBloque(ex.bloque),
-                  style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w800, letterSpacing: 0.2),
+              if (hasChip) ...[
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                  decoration: BoxDecoration(color: _catColor, borderRadius: BorderRadius.circular(7)),
+                  child: Text(
+                    _shortBloque(ex.bloque),
+                    style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w800, letterSpacing: 0.2),
+                  ),
                 ),
-              ),
-              const SizedBox(width: 10),
+                const SizedBox(width: 10),
+              ],
 
-              // Center: name + stats
               Expanded(
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  // Exercise name
                   Text(
                     ex.nombre,
                     style: TextStyle(
@@ -90,7 +77,6 @@ class _ExerciseCardState extends State<ExerciseCard> {
                   ),
                   const SizedBox(height: 6),
 
-                  // ─── PESO RECOMENDADO (principal) ─────────────
                   if (hasRec)
                     Container(
                       margin: const EdgeInsets.only(bottom: 6),
@@ -111,36 +97,28 @@ class _ExerciseCardState extends State<ExerciseCard> {
                           ),
                         ),
                         const SizedBox(width: 4),
-                        Text(
-                          'recomendado',
-                          style: TextStyle(fontSize: 10, color: AppTheme.navy.withValues(alpha: 0.55), fontWeight: FontWeight.w600),
-                        ),
+                        Text('recomendado',
+                          style: TextStyle(fontSize: 10, color: AppTheme.navy.withValues(alpha: 0.55), fontWeight: FontWeight.w600)),
                       ]),
                     )
                   else if (ex.peso.isNotEmpty)
-                    // Fallback: peso del Excel
                     Container(
                       margin: const EdgeInsets.only(bottom: 6),
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF5F5F5),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
+                      decoration: BoxDecoration(color: const Color(0xFFF5F5F5), borderRadius: BorderRadius.circular(8)),
                       child: Text(ex.peso,
                         style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF546E7A))),
                     ),
 
-                  // Series / Reps + Descanso (etiquetas explícitas)
                   Wrap(
-                    spacing: 6,
-                    runSpacing: 6,
+                    spacing: 6, runSpacing: 6,
                     crossAxisAlignment: WrapCrossAlignment.center,
                     children: [
                       if (ex.series.isNotEmpty)
                         _chip('Series: ${ex.series}', AppTheme.navy, Colors.white),
                       if (ex.reps.isNotEmpty)
                         _chip('Reps: ${ex.reps}', AppTheme.blue, Colors.white),
-                      if (ex.descanso.isNotEmpty)
+                      if (ex.tieneDescanso)
                         GestureDetector(
                           onTap: () => RestTimerSheet.show(context, ex.descanso, ex.nombre),
                           child: _chip('⏱ ${ex.descanso}', const Color(0xFFFFF3E0), const Color(0xFFE65100), border: const Color(0xFFFFCC02)),
@@ -152,12 +130,12 @@ class _ExerciseCardState extends State<ExerciseCard> {
 
               const SizedBox(width: 8),
 
-              // Done button
               GestureDetector(
                 onTap: () {
-                  final wasNotDone = !ex.hecho;
+                  final wasNotDone = !widget.isDone;
                   widget.onToggle?.call();
-                  if (wasNotDone && ex.descanso.isNotEmpty) {
+                  // El timer solo se abre si el ejercicio tiene un descanso real.
+                  if (wasNotDone && ex.tieneDescanso) {
                     HapticFeedback.mediumImpact();
                     Future.delayed(const Duration(milliseconds: 250), () {
                       if (context.mounted) RestTimerSheet.show(context, ex.descanso, ex.nombre);
@@ -171,18 +149,15 @@ class _ExerciseCardState extends State<ExerciseCard> {
                     color: isDone ? const Color(0xFF43A047) : const Color(0xFFEEEEEE),
                     shape: BoxShape.circle,
                   ),
-                  child: Icon(
-                    isDone ? Icons.check : Icons.circle_outlined,
-                    color: isDone ? Colors.white : Colors.grey[400], size: 20,
-                  ),
+                  child: Icon(isDone ? Icons.check : Icons.circle_outlined,
+                    color: isDone ? Colors.white : Colors.grey[400], size: 20),
                 ),
               ),
             ]),
           ),
         ),
 
-        // ── Expanded detail ──────────────────────────────────────
-        if (_expanded) _expanded$(context, ex),
+        if (_expanded) _detail(context, ex),
       ]),
     );
   }
@@ -197,12 +172,10 @@ class _ExerciseCardState extends State<ExerciseCard> {
     child: Text(text, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: fg)),
   );
 
-  Widget _expanded$(BuildContext context, Exercise ex) => Container(
+  Widget _detail(BuildContext context, Exercise ex) => Container(
     padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       const Divider(height: 16, color: Color(0xFFEEEEEE)),
-
-      // Instrucciones
       if (ex.instruccion.isNotEmpty) ...[
         Container(
           width: double.infinity,
@@ -217,9 +190,7 @@ class _ExerciseCardState extends State<ExerciseCard> {
         ),
         const SizedBox(height: 12),
       ],
-
-      // Timer button
-      if (ex.descanso.isNotEmpty) ...[
+      if (ex.tieneDescanso)
         SizedBox(
           width: double.infinity,
           child: OutlinedButton.icon(
@@ -234,35 +205,6 @@ class _ExerciseCardState extends State<ExerciseCard> {
             ),
           ),
         ),
-        const SizedBox(height: 10),
-      ],
-
-      // Peso real
-      Row(children: [
-        const Text('Peso real usado:', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
-        const SizedBox(width: 10),
-        SizedBox(
-          width: 90,
-          child: TextField(
-            controller: _ctrl,
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[\d.]'))],
-            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
-            decoration: InputDecoration(
-              contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-              suffixText: 'kg',
-              suffixStyle: const TextStyle(fontSize: 12, color: Colors.grey),
-            ),
-            onChanged: (v) => widget.onWeightLogged?.call(double.tryParse(v)),
-          ),
-        ),
-        if (widget.plannedKg != null) ...[
-          const SizedBox(width: 10),
-          Text('← vs ${widget.plannedKg!.toStringAsFixed(1)} kg plan',
-            style: const TextStyle(fontSize: 11, color: Color(0xFF90A4AE))),
-        ],
-      ]),
     ]),
   );
 

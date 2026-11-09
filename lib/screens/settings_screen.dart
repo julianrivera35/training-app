@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../providers/app_provider.dart';
 import '../services/pdf_exporter.dart';
 import '../theme/app_theme.dart';
+import 'mercado_screen.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -51,7 +52,7 @@ class SettingsScreen extends StatelessWidget {
               child: Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(color: AppTheme.green.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
-                child: Text('✅ ${p.days.length} días · ${p.loads.length} ejercicios con cargas',
+                child: Text('✅ ${p.days.length} días · ${p.loadExercises.length} ejercicios con cargas',
                   style: const TextStyle(fontSize: 12, color: AppTheme.green)),
               ),
             ),
@@ -72,42 +73,55 @@ class SettingsScreen extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('Semana ${p.currentWeek} de 8',
-                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppTheme.navy)),
-                  Text(p.currentPhase,
-                    style: const TextStyle(fontSize: 13, color: Color(0xFF78909C))),
+                  Text('Semana ${p.currentWeek}',
+                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppTheme.navy)),
+                  Text('${p.currentPhase} · bloque ${p.blockWeek}${p.currentPercent != null ? ' (${p.currentPercent!.toInt()}%)' : ''}',
+                    style: const TextStyle(fontSize: 12, color: Color(0xFF78909C))),
                 ],
               ),
-              const SizedBox(height: 12),
-              SliderTheme(
-                data: SliderTheme.of(context).copyWith(
-                  trackHeight: 6,
-                  thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 10),
-                  overlayShape: const RoundSliderOverlayShape(overlayRadius: 18),
+              const SizedBox(height: 4),
+              Text('Hoy: ${DateFormat('EEEE d MMM yyyy', 'es').format(DateTime.now())}',
+                style: const TextStyle(fontSize: 12, color: Color(0xFF90A4AE))),
+              const Divider(height: 20),
+              Row(children: [
+                const Icon(Icons.event, size: 18, color: AppTheme.navy),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    p.startDate != null
+                        ? 'Semana 1 empezó: ${DateFormat('d MMM yyyy', 'es').format(p.startDate!)}'
+                        : 'Se fija con tu primer entreno',
+                    style: const TextStyle(fontSize: 13, color: AppTheme.navy, fontWeight: FontWeight.w600),
+                  ),
                 ),
-                child: Slider(
-                  value: p.currentWeek.toDouble(),
-                  min: 1, max: 8, divisions: 7,
-                  activeColor: AppTheme.navy,
-                  onChanged: (v) => p.setWeek(v.toInt()),
+                TextButton(
+                  onPressed: () async {
+                    final picked = await showDatePicker(
+                      context: context,
+                      initialDate: p.startDate ?? DateTime.now(),
+                      firstDate: DateTime(2026, 1, 1),
+                      lastDate: DateTime(2028, 1, 1),
+                    );
+                    if (picked != null) p.setStartDate(picked);
+                  },
+                  child: const Text('Cambiar'),
                 ),
-              ),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: List.generate(8, (i) => Text('${i+1}',
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: i + 1 == p.currentWeek ? FontWeight.w800 : FontWeight.w400,
-                    color: i + 1 == p.currentWeek ? AppTheme.navy : const Color(0xFFBBBBBB),
-                  ))),
-              ),
-              const SizedBox(height: 6),
-              const Text(
-                '18 ago     25 ago     1 sep     8 sep     15 sep     22 sep     29 sep     6 oct',
-                style: TextStyle(fontSize: 9, color: Color(0xFFBBBBBB)),
-                overflow: TextOverflow.ellipsis,
-              ),
+              ]),
             ]),
+          ),
+
+          const SizedBox(height: 8),
+
+          // ── Mercado ─────────────────────────────────────────────
+          _section('NUTRICIÓN'),
+          _tile(
+            icon: Icons.shopping_cart_outlined,
+            iconColor: const Color(0xFF2E7D32),
+            title: 'Lista del mercado',
+            subtitle: '${p.shopping.where((s) => s.comprado).length} de ${p.shopping.length} comprados',
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const MercadoScreen()),
+            ),
           ),
 
           const SizedBox(height: 8),
@@ -189,7 +203,7 @@ class SettingsScreen extends StatelessWidget {
       Text('Pivote · Selección Bogotá · 24 años · 91 kg · 1.83m',
         style: TextStyle(color: Colors.white70, fontSize: 12)),
       SizedBox(height: 6),
-      Text('Meta: Clasificatorios Octubre 2026 🏆',
+      Text('Meta: Clasificatorios Marzo 2027 🏆',
         style: TextStyle(color: Colors.white54, fontSize: 11)),
     ]),
   );
@@ -200,7 +214,7 @@ class SettingsScreen extends StatelessWidget {
     if (p.importStatus == ImportStatus.success) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('✅ Plan importado: ${p.days.length} días, ${p.loads.length} ejercicios con cargas'),
+          content: Text('✅ Plan importado: ${p.days.length} días, ${p.loadExercises.length} ejercicios con cargas'),
           backgroundColor: AppTheme.green,
           duration: const Duration(seconds: 4),
         ),

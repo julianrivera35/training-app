@@ -2,19 +2,18 @@ import 'dart:convert';
 import 'package:archive/archive.dart';
 import 'package:excel/excel.dart';
 import '../models/exercise.dart';
-import '../models/weekly_load.dart';
-import '../models/nutrition_plan.dart';
+import '../models/load_exercise.dart';
 import '../models/shopping_item.dart';
 
 class ParsedPlan {
   final List<TrainingDay> days;
-  final List<WeeklyLoad> loads;
-  final NutritionPlan nutrition;
+  final List<LoadExercise> loadExercises; // ejercicios con 1RM (cargas)
+  final List<double> weekPercents;        // % por semana del bloque (8)
   final List<ShoppingItem> shopping;
   ParsedPlan({
     required this.days,
-    required this.loads,
-    required this.nutrition,
+    required this.loadExercises,
+    required this.weekPercents,
     required this.shopping,
   });
 }
@@ -29,10 +28,14 @@ class ExcelParser {
   static ParsedPlan parse(List<int> bytes) {
     final excel = Excel.decodeBytes(_sanitize(bytes));
     final days   = _parseSemanal(excel);
-    final loads  = _parseCargas(excel);
-    final nutri  = _parseNutricion(excel);
+    final cargas = _parseCargas(excel);
     final shop   = _parseMercado(excel);
-    return ParsedPlan(days: days, loads: loads, nutrition: nutri, shopping: shop);
+    return ParsedPlan(
+      days: days,
+      loadExercises: cargas.$1,
+      weekPercents: cargas.$2,
+      shopping: shop,
+    );
   }
 
   // ── LISTA DEL MERCADO ─────────────────────────────────────────
@@ -153,10 +156,13 @@ class ExcelParser {
       final c = _s(row, 2);
       final d = _s(row, 3);
 
-      // Skip everything before the column-header row (título, leyenda,
-      // "BLOQUE | EJERCICIO | ..."), para que la leyenda no se cuele.
+      // Skip everything before the column-header row (título, leyenda, cardio,
+      // "BLOQUE/EJERCICIO | ..."). El encabezado puede estar en A ("BLOQUE",
+      // formato viejo) o en B ("EJERCICIO", formato nuevo).
       if (!headerSkipped) {
-        if (a.toUpperCase().startsWith('BLOQUE')) headerSkipped = true;
+        if (a.toUpperCase().startsWith('BLOQUE') || b.toUpperCase().startsWith('EJERCICIO')) {
+          headerSkipped = true;
+        }
         continue;
       }
 
@@ -199,8 +205,8 @@ class ExcelParser {
             currentSection = a;
           }
         }
-      } else if (b.isNotEmpty) {
-        // Exercise row
+      } else if (b.isNotEmpty && _hasLetters(b)) {
+        // Exercise row (filtra filas basura cuyo "nombre" es solo un número)
         pendingActivity = null;
         final ex = Exercise(
           bloque: a,
@@ -252,109 +258,64 @@ class ExcelParser {
     return _dayNames.any((d) => up.startsWith(d));
   }
 
-  // ── CARGAS Y PROGRESIÓN ───────────────────────────────────────
-  static List<WeeklyLoad> _parseCargas(Excel excel) {
-    // try common sheet name variants
+  // ── CARGAS Y PROGRESIÓN (1RM × % por semana) ──────────────────
+  static const List<double> _defaultPercents = [75, 78, 80, 82, 85, 87, 88, 72];
+
+  /// Devuelve (ejercicios con 1RM, porcentajes de las 8 semanas del bloque).
+  static (List<LoadExercise>, List<double>) _parseCargas(Excel excel) {
     Sheet? sheet;
     for (final name in ['CARGAS Y PROGRESIÓN', 'CARGAS Y PROGRESION', 'CARGAS']) {
       sheet = excel.tables[name];
       if (sheet != null) break;
     }
-    if (sheet == null) return [];
+    if (sheet == null) return (<LoadExercise>[], _defaultPercents);
 
-    final loads = <WeeklyLoad>[];
-    int dataStart = 0;
-
-    // Find header row (contains "EJERCICIO" and "1RM")
+    // Fila de encabezado: la que contiene "1RM".
+    int headerRow = -1;
     for (int r = 0; r < sheet.rows.length; r++) {
-      final row = sheet.rows[r];
-      final rowStr = row.map((c) => _s2(c)).join(' ').toUpperCase();
-      if (rowStr.contains('EJERCICIO') && rowStr.contains('1RM')) {
-        dataStart = r + 1;
-        break;
+      final s = sheet.rows[r].map((c) => _s2(c)).join(' ').toUpperCase();
+      if (s.contains('1RM')) { headerRow = r; break; }
+    }
+    if (headerRow < 0) return (<LoadExercise>[], _defaultPercents);
+
+    // Porcentajes por semana: celdas del encabezado tipo "SEM 1\n75%".
+    final percents = <double>[];
+    for (final cell in sheet.rows[headerRow]) {
+      final txt = _s2(cell);
+      final m = RegExp(r'(\d{1,3})\s*%').firstMatch(txt);
+      if (txt.toUpperCase().contains('SEM') && m != null) {
+        percents.add(double.parse(m.group(1)!));
       }
     }
 
-    for (int r = dataStart; r < sheet.rows.length; r++) {
-      final row = sheet.rows[r];
-      if (row.isEmpty) continue;
-      final a = _s(row, 0);
-      final b = _s(row, 1);
-
-      // Skip separators and "Real" rows
-      if (a.startsWith('──') || b.startsWith('→')) continue;
-      if (b.isEmpty) continue;
-
-      // Plan kg are in columns 5-12 (0-indexed)
-      final plan = <double>[];
-      for (int c = 5; c <= 12; c++) {
-        final v = _n(row, c);
-        if (v != null) plan.add(v);
-      }
-      if (plan.isEmpty) continue;
-
-      loads.add(WeeklyLoad(
-        grupo: a,
-        nombre: b,
-        dia: _s(row, 2),
-        orm: _n(row, 3) ?? 0,
-        unidad: _s(row, 4),
-        planKg: plan,
-      ));
+    // Ejercicios: nombre en col A, día en col B (solo filas con un día real).
+    final exercises = <LoadExercise>[];
+    final seen = <String>{};
+    for (int r = headerRow + 1; r < sheet.rows.length; r++) {
+      final a = _s(sheet.rows[r], 0);
+      final b = _s(sheet.rows[r], 1);
+      if (!_hasLetters(a)) continue;
+      final up = a.toUpperCase();
+      if (up.contains('CÓMO USAR') || up.contains('COMO USAR')) break;
+      if (!_looksLikeDay(b)) continue; // descarta encabezados de sección
+      final key = a.toLowerCase();
+      if (seen.contains(key)) continue;
+      seen.add(key);
+      exercises.add(LoadExercise(nombre: a, dia: b));
     }
-    return loads;
+    return (exercises, percents.isNotEmpty ? percents : _defaultPercents);
   }
 
-  // ── NUTRICIÓN ─────────────────────────────────────────────────
-  static NutritionPlan _parseNutricion(Excel excel) {
-    // Try to find macros in the nutrition sheet; fall back to default
-    Sheet? sheet;
-    for (final name in ['NUTRICIÓN', 'NUTRICION', 'NUTRICIÓN']) {
-      sheet = excel.tables[name];
-      if (sheet != null) break;
-    }
-    if (sheet == null) return NutritionPlan.defaultPlan();
+  static bool _hasLetters(String s) =>
+      RegExp(r'[A-Za-zÁÉÍÓÚÑáéíóúñ]').hasMatch(s);
 
-    int protein = 0, carbs = 0, fat = 0, kcal = 0;
-    for (final row in sheet.rows) {
-      final rowText = row.map((c) => _s2(c).toUpperCase()).join(' ');
-      // Look for macro rows
-      if (rowText.contains('PROTEÍNA') || rowText.contains('PROTEINA')) {
-        for (int c = 0; c < row.length; c++) {
-          final v = _n2(row[c]);
-          if (v != null && v > 50) { protein = v.toInt(); break; }
-        }
-      } else if (rowText.contains('CARBOH')) {
-        for (int c = 0; c < row.length; c++) {
-          final v = _n2(row[c]);
-          if (v != null && v > 50) { carbs = v.toInt(); break; }
-        }
-      } else if (rowText.contains('GRASA')) {
-        for (int c = 0; c < row.length; c++) {
-          final v = _n2(row[c]);
-          if (v != null && v > 10) { fat = v.toInt(); break; }
-        }
-      } else if (rowText.contains('CALORÍA') || rowText.contains('CALORIA') || rowText.contains('KCAL')) {
-        for (int c = 0; c < row.length; c++) {
-          final v = _n2(row[c]);
-          if (v != null && v > 500) { kcal = v.toInt(); break; }
-        }
-      }
-    }
-
-    // If we found meaningful values, use them; else default
-    if (protein > 0 && kcal > 0) {
-      final def = NutritionPlan.defaultPlan();
-      return NutritionPlan(
-        proteinaTotal: protein,
-        carbosTotal: carbs > 0 ? carbs : def.carbosTotal,
-        grasasTotal: fat > 0 ? fat : def.grasasTotal,
-        caloriasTotal: kcal,
-        comidas: def.comidas,
-        suplementos: def.suplementos,
-      );
-    }
-    return NutritionPlan.defaultPlan();
+  static bool _looksLikeDay(String s) {
+    final up = s
+        .toUpperCase()
+        .replaceAll('Á', 'A').replaceAll('É', 'E').replaceAll('Í', 'I')
+        .replaceAll('Ó', 'O').replaceAll('Ú', 'U');
+    return const ['LUN', 'MAR', 'MIE', 'JUE', 'VIE', 'SAB', 'DOM']
+        .any((d) => up.contains(d));
   }
 
   // ── helpers ───────────────────────────────────────────────────
@@ -415,17 +376,4 @@ class ExcelParser {
     return '';
   }
 
-  static double? _n(List<Data?> row, int col) {
-    if (col >= row.length) return null;
-    return _n2(row[col]);
-  }
-
-  static double? _n2(Data? d) {
-    if (d?.value == null) return null;
-    final v = d!.value!;
-    if (v is IntCellValue) return v.value.toDouble();
-    if (v is DoubleCellValue) return v.value;
-    if (v is TextCellValue) return double.tryParse((v.value.text ?? '').replaceAll(',', '.'));
-    return null;
-  }
 }
