@@ -35,95 +35,81 @@ class _WeekScreenState extends State<WeekScreen> {
   }
 
   Widget _dayCard(BuildContext context, AppProvider p, TrainingDay day) {
-    final isToday = day.name.toUpperCase().contains(p.todayDayName);
+    final isToday = _noAccents(day.name.toUpperCase()).startsWith(_noAccents(p.todayDayName));
     final isExpanded = _expanded == day.name;
     final done = p.completedCount(day.name);
     final total = day.exercises.length;
+    final pct = total == 0 ? 0.0 : done / total;
+    final (weekday, focus) = _split(day.name);
+    final accent = isToday ? AppTheme.orange : AppTheme.navy;
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: isToday ? Border.all(color: AppTheme.orange, width: 2) : null,
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 8, offset: const Offset(0, 2))],
+        borderRadius: BorderRadius.circular(16),
+        border: isToday ? Border.all(color: AppTheme.orange, width: 1.5) : null,
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 8, offset: const Offset(0, 2))],
       ),
+      clipBehavior: Clip.antiAlias,
       child: Column(
         children: [
-          // Header
           InkWell(
-            borderRadius: BorderRadius.circular(14),
             onTap: () => setState(() => _expanded = isExpanded ? null : day.name),
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              padding: const EdgeInsets.fromLTRB(16, 14, 14, 14),
               child: Row(
                 children: [
-                  Container(
-                    width: 6, height: 40,
-                    decoration: BoxDecoration(
-                      color: isToday ? AppTheme.orange : AppTheme.navy,
-                      borderRadius: BorderRadius.circular(3),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
+                  Container(width: 5, height: 46,
+                    decoration: BoxDecoration(color: accent, borderRadius: BorderRadius.circular(3))),
+                  const SizedBox(width: 14),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Row(children: [
-                          Flexible(
-                            child: Text(
-                              _cleanDayName(day.name),
-                              style: TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w800,
-                                color: isToday ? AppTheme.orange : AppTheme.navy,
-                              ),
-                            ),
-                          ),
+                          Text(weekday, style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900, color: accent, letterSpacing: 0.3)),
                           if (isToday) ...[
-                            const SizedBox(width: 6),
+                            const SizedBox(width: 8),
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: AppTheme.orange, borderRadius: BorderRadius.circular(5)),
-                              child: const Text('HOY', style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.w800)),
+                              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                              decoration: BoxDecoration(color: AppTheme.orange, borderRadius: BorderRadius.circular(5)),
+                              child: const Text('HOY', style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.w900)),
                             ),
                           ],
                         ]),
-                        const SizedBox(height: 4),
-                        Wrap(
-                          spacing: 6, runSpacing: 4,
-                          crossAxisAlignment: WrapCrossAlignment.center,
-                          children: [
-                            Text(
-                              '$total ejercicios${done > 0 ? ' · $done completados' : ''}',
-                              style: const TextStyle(fontSize: 12, color: Color(0xFF90A4AE)),
-                            ),
-                            if (isDoubleSession(day.name))
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFF5E35B1).withValues(alpha: 0.12),
-                                  borderRadius: BorderRadius.circular(6),
-                                ),
-                                child: const Text('⚡ DOBLE SESIÓN',
-                                  style: TextStyle(fontSize: 9.5, fontWeight: FontWeight.w800, color: Color(0xFF5E35B1))),
+                        if (focus.isNotEmpty) ...[
+                          const SizedBox(height: 2),
+                          Text(focus,
+                            maxLines: 1, overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: Color(0xFF78909C))),
+                        ],
+                        const SizedBox(height: 9),
+                        Row(children: [
+                          Expanded(
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(4),
+                              child: LinearProgressIndicator(
+                                value: pct, minHeight: 6,
+                                backgroundColor: const Color(0xFFEDEFF3),
+                                valueColor: AlwaysStoppedAnimation(done == total && total > 0 ? AppTheme.green : accent),
                               ),
-                          ],
-                        ),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Text('$done/$total',
+                            style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700,
+                              color: done == total && total > 0 ? AppTheme.green : const Color(0xFF90A4AE))),
+                        ]),
                       ],
                     ),
                   ),
-                  Icon(
-                    isExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
-                    color: const Color(0xFF90A4AE),
-                  ),
+                  const SizedBox(width: 6),
+                  Icon(isExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down, color: const Color(0xFFBBBBBB)),
                 ],
               ),
             ),
           ),
-          // Exercise list (expanded)
           if (isExpanded) ...[
             const Divider(height: 1, color: Color(0xFFF0F0F0)),
             ...sectionedExercises(day.exercises, (ex) => ExerciseCard(
@@ -139,10 +125,21 @@ class _WeekScreenState extends State<WeekScreen> {
     );
   }
 
-  String _cleanDayName(String name) {
-    // "⚡ LUNES — FUERZA EXPLOSIVA" → "LUNES — FUERZA EXPLOSIVA"
-    return name.replaceAll(RegExp(r'^[^\wÁÉÍÓÚáéíóúÑñ\s]+\s*'), '').trim();
+  /// "LUNES — FUERZA INFERIOR" → ("LUNES", "Fuerza inferior")
+  (String, String) _split(String name) {
+    final clean = name.replaceAll(RegExp(r'^[^\wÁÉÍÓÚáéíóúÑñ\s]+\s*'), '').trim();
+    final parts = clean.split(RegExp(r'\s*[—–-]\s*'));
+    final weekday = parts.first.trim().toUpperCase();
+    final focus = parts.length > 1 ? _titleCase(parts.sublist(1).join(' · ').trim()) : '';
+    return (weekday, focus);
   }
+
+  String _titleCase(String s) => s.isEmpty ? s
+      : s[0].toUpperCase() + s.substring(1).toLowerCase();
+
+  String _noAccents(String s) => s
+      .replaceAll('Á','A').replaceAll('É','E').replaceAll('Í','I')
+      .replaceAll('Ó','O').replaceAll('Ú','U');
 
   Widget _noplan() => const Center(
     child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [

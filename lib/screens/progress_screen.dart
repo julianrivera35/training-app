@@ -241,7 +241,7 @@ class _ProgressScreenState extends State<ProgressScreen> with SingleTickerProvid
   // ── History ───────────────────────────────────────────────────
   Widget _buildHistory() {
     final p = context.watch<AppProvider>();
-    if (p.progress.isEmpty) {
+    if (p.progress.isEmpty && p.rms.isEmpty && p.completedPerWeek.isEmpty) {
       return const Center(
         child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
           Icon(Icons.bar_chart_outlined, size: 64, color: Color(0xFFCFD8DC)),
@@ -260,18 +260,157 @@ class _ProgressScreenState extends State<ProgressScreen> with SingleTickerProvid
         .reversed
         .toList();
 
+    final painData = p.progress
+        .where((e) => e.dolorLumbar != null || e.dolorHombro != null || e.dolorRodilla != null)
+        .toList().reversed.toList();
+
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
+        if (p.completedPerWeek.isNotEmpty) ...[
+          _sectionLabel('ADHERENCIA — ejercicios por semana'),
+          _adherenceChart(p),
+          const SizedBox(height: 20),
+        ],
         if (weightData.length >= 2) ...[
           _sectionLabel('EVOLUCIÓN DE PESO'),
           _weightChart(weightData),
           const SizedBox(height: 20),
         ],
-        _sectionLabel('REGISTROS (${p.progress.length})'),
-        ...p.progress.asMap().entries.map((e) => _historyCard(e.value, e.key, p)),
+        if (painData.length >= 2) ...[
+          _sectionLabel('TENDENCIA DE DOLOR'),
+          _painChart(painData),
+          const SizedBox(height: 20),
+        ],
+        if (p.rms.isNotEmpty) ...[
+          _sectionLabel('TUS 1RM ACTUALES'),
+          _rmBars(p),
+          const SizedBox(height: 20),
+        ],
+        if (p.progress.isNotEmpty) ...[
+          _sectionLabel('REGISTROS (${p.progress.length})'),
+          ...p.progress.asMap().entries.map((e) => _historyCard(e.value, e.key, p)),
+        ],
         const SizedBox(height: 100),
       ],
+    );
+  }
+
+  Widget _chartBox(Widget child, {double height = 170}) => Container(
+    height: height,
+    padding: const EdgeInsets.fromLTRB(10, 16, 16, 10),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(14),
+      boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 8)],
+    ),
+    child: child,
+  );
+
+  Widget _adherenceChart(AppProvider p) {
+    final data = p.completedPerWeek;
+    final maxW = data.keys.fold(1, (a, b) => b > a ? b : a);
+    final maxV = data.values.fold(1, (a, b) => b > a ? b : a).toDouble();
+    return _chartBox(BarChart(BarChartData(
+      alignment: BarChartAlignment.spaceAround,
+      maxY: maxV + 1,
+      gridData: const FlGridData(show: false),
+      borderData: FlBorderData(show: false),
+      titlesData: FlTitlesData(
+        leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: true, reservedSize: 24)),
+        topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+        rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+        bottomTitles: AxisTitles(sideTitles: SideTitles(
+          showTitles: true, reservedSize: 20,
+          getTitlesWidget: (v, _) => Text('S${v.toInt()}',
+            style: const TextStyle(fontSize: 10, color: Color(0xFF90A4AE))),
+        )),
+      ),
+      barGroups: [
+        for (int w = 1; w <= maxW; w++)
+          BarChartGroupData(x: w, barRods: [
+            BarChartRodData(toY: (data[w] ?? 0).toDouble(), color: AppTheme.navy, width: 16,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(4))),
+          ]),
+      ],
+    )));
+  }
+
+  Widget _painChart(List<ProgressEntry> entries) {
+    List<FlSpot> line(int? Function(ProgressEntry) f) => [
+      for (int i = 0; i < entries.length; i++)
+        if (f(entries[i]) != null) FlSpot(i.toDouble(), f(entries[i])!.toDouble())
+    ];
+    LineChartBarData bar(List<FlSpot> s, Color c) => LineChartBarData(
+      spots: s, isCurved: true, curveSmoothness: 0.3, color: c, barWidth: 2.5,
+      dotData: const FlDotData(show: false));
+    return Column(children: [
+      _chartBox(LineChart(LineChartData(
+        minY: 0, maxY: 10,
+        gridData: const FlGridData(show: false),
+        borderData: FlBorderData(show: false),
+        titlesData: const FlTitlesData(
+          leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, reservedSize: 24, interval: 5)),
+          topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+        ),
+        lineBarsData: [
+          bar(line((e) => e.dolorLumbar), AppTheme.red),
+          bar(line((e) => e.dolorHombro), AppTheme.blue),
+          bar(line((e) => e.dolorRodilla), AppTheme.amber),
+        ],
+      ))),
+      const SizedBox(height: 6),
+      Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+        _legend('Lumbar', AppTheme.red), _legend('Hombro', AppTheme.blue), _legend('Rodilla', AppTheme.amber),
+      ]),
+    ]);
+  }
+
+  Widget _legend(String t, Color c) => Padding(
+    padding: const EdgeInsets.symmetric(horizontal: 6),
+    child: Row(mainAxisSize: MainAxisSize.min, children: [
+      Container(width: 10, height: 10, decoration: BoxDecoration(color: c, shape: BoxShape.circle)),
+      const SizedBox(width: 4),
+      Text(t, style: const TextStyle(fontSize: 11, color: Color(0xFF78909C))),
+    ]),
+  );
+
+  Widget _rmBars(AppProvider p) {
+    final entries = p.rms.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
+    final maxV = entries.first.value;
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 8)],
+      ),
+      child: Column(children: [
+        for (final e in entries) Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4),
+          child: Row(children: [
+            SizedBox(width: 120, child: Text(e.key,
+              maxLines: 1, overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.navy))),
+            Expanded(
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(4),
+                child: LinearProgressIndicator(
+                  value: maxV == 0 ? 0 : e.value / maxV, minHeight: 10,
+                  backgroundColor: const Color(0xFFEDEFF3),
+                  valueColor: const AlwaysStoppedAnimation(AppTheme.blue),
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            SizedBox(width: 48, child: Text('${e.value % 1 == 0 ? e.value.toInt() : e.value} kg',
+              textAlign: TextAlign.right,
+              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: AppTheme.navy))),
+          ]),
+        ),
+      ]),
     );
   }
 

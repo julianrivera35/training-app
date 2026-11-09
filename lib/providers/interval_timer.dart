@@ -92,7 +92,7 @@ class IntervalTimerController extends ChangeNotifier {
     // Audio de silencio en loop → mantiene la app viva en segundo plano
     // para que el ticker siga sonando con la pantalla bloqueada.
     AudioService.startKeepAlive();
-    AudioService.beep(times: 2); // arranque
+    AudioService.beep(Beep.hard); // arranque (fuerte)
 
     _startTicker();
     notifyListeners();
@@ -111,12 +111,12 @@ class IntervalTimerController extends ChangeNotifier {
         _lastPhaseIndex = idx;
         HapticFeedback.heavyImpact();
         final p = currentPhase;
-        AudioService.beep(times: (p?.hard ?? false) ? 2 : 1);
+        AudioService.beep((p?.hard ?? false) ? Beep.hard : Beep.soft);
       }
       if (elapsed >= totalSeconds && !_finished) {
         _finished = true;
         HapticFeedback.heavyImpact();
-        AudioService.beep(times: 3); // final
+        AudioService.beep(Beep.end); // final
         AudioService.stopKeepAlive();
         _ticker?.cancel();
       }

@@ -44,17 +44,21 @@ class AudioService {
     } catch (_) {}
   }
 
-  /// Reproduce [times] beeps seguidos.
-  static Future<void> beep({int times = 1}) async {
+  /// Reproduce el beep correspondiente al tipo de fase.
+  static Future<void> beep(Beep type) async {
     await _configure();
+    const assets = {
+      Beep.hard: 'audio/beep_hard.wav',
+      Beep.soft: 'audio/beep_soft.wav',
+      Beep.end: 'audio/beep_end.wav',
+    };
     try {
-      for (int i = 0; i < times; i++) {
-        if (i > 0) await Future.delayed(const Duration(milliseconds: 240));
-        await _beep.stop();
-        await _beep.play(AssetSource('audio/beep.wav'), volume: 1.0);
-      }
+      await _beep.stop();
+      await _beep.play(AssetSource(assets[type]!), volume: 1.0);
     } catch (e) {
       debugPrint('AudioService.beep failed: $e');
     }
   }
 }
+
+enum Beep { hard, soft, end }
